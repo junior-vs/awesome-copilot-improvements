@@ -1,10 +1,6 @@
 ---
 name: arize-prompt-optimization
-description: Optimizes, improves, and debugs LLM prompts using production trace data, evaluations, and annotations. Extracts prompts from spans, gathers performance signal, and runs a data-driven optimization loop using the ax CLI. Use when the user mentions optimize prompt, improve prompt, make AI respond better, improve output quality, prompt engineering, prompt tuning, or system prompt improvement.
-metadata:
-  author: arize
-  version: "1.0"
-compatibility: Requires the ax CLI and a configured Arize profile.
+description: "INVOKE THIS SKILL when optimizing, improving, or debugging LLM prompts using production trace data, evaluations, and annotations. Also use when the user wants to make their AI respond better or improve AI output quality. Covers extracting prompts from spans, gathering performance signal, and running a data-driven optimization loop using the ax CLI."
 ---
 
 # Arize Prompt Optimization Skill
