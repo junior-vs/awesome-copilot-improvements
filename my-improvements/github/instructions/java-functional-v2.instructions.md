@@ -22,7 +22,7 @@ Enforce strict functional programming principles as the **primary design approac
 ## General Instructions
 
 - **Default to Immutability**: Treat mutability as an explicit, justified exception (*Effective Java*, Item 17).
-- **Enforce Pure Functions**: Methods must produce the same output for the same input with zero observable side effects.
+- **Prioritize pure functions**: Methods must produce the same output for the same input with zero observable side effects.
 - **Push Side Effects to Boundaries**: Keep the domain core pure. Perform I/O, logging, and DB operations only at the outermost architectural layers (adapters, controllers).
 - **Logging Boundary**: Log only at the application layer — never inside domain logic or pure functions.
 - **Model Failures as Values**: Use sealed `Result<T, E>` for expected business failures. Do not throw exceptions across domain boundaries.

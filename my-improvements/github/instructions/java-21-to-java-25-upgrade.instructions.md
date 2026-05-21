@@ -1,5 +1,5 @@
 ---
-applyTo: ['*']
+applyTo: '**/*.java'
 description: "Comprehensive best practices for adopting new Java 25 features since the release of Java 21."
 ---
 
@@ -20,7 +20,7 @@ When working with pattern matching:
 // Old approach (Java 21)
 switch (x.getStatus()) {
     case 0 -> "okay";
-    case 1 -> "warning"; 
+    case 1 -> "warning";
     case 2 -> "error";
     default -> "unknown status: " + x.getStatus();
 }
@@ -29,7 +29,7 @@ switch (x.getStatus()) {
 switch (x.getStatus()) {
     case 0 -> "okay";
     case 1 -> "warning";
-    case 2 -> "error"; 
+    case 2 -> "error";
     case int i -> "unknown status: " + i;
 }
 ```
@@ -60,7 +60,7 @@ ClassWriter writer = new ClassWriter(reader, 0);
 
 // New Class-File API approach
 ClassModel classModel = ClassFile.of().parse(classBytes);
-byte[] newBytes = ClassFile.of().transform(classModel, 
+byte[] newBytes = ClassFile.of().transform(classModel,
     ClassTransform.transformingMethods(methodTransform));
 ```
 
@@ -79,17 +79,17 @@ When working with JavaDoc comments:
  * <p>
  * If the argument is not negative, return the argument.
  * If the argument is negative, return the negation of the argument.
- * 
+ *
  * @param a the argument whose absolute value is to be determined
  * @return the absolute value of the argument
  */
 
-// New Markdown JavaDoc  
+// New Markdown JavaDoc
 /// Returns the **absolute** value of an `int` value.
 ///
 /// If the argument is not negative, return the argument.
 /// If the argument is negative, return the negation of the argument.
-/// 
+///
 /// @param a the argument whose absolute value is to be determined
 /// @return the absolute value of the argument
 ```

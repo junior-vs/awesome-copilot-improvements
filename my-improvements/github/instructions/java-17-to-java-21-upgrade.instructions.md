@@ -1,5 +1,5 @@
 ---
-applyTo: ['*']
+applyTo: '**/*.java'
 description: "Comprehensive best practices for adopting new Java 21 features since the release of Java 17."
 ---
 
@@ -68,7 +68,7 @@ public record ColoredPoint(Point point, Color color) {}
 public String describe(Object obj) {
     return switch (obj) {
         case Point(var x, var y) -> "Point at (" + x + ", " + y + ")";
-        case ColoredPoint(Point(var x, var y), var color) -> 
+        case ColoredPoint(Point(var x, var y), var color) ->
             "Colored point at (" + x + ", " + y + ") in " + color;
         default -> "Unknown shape";
     };
@@ -79,8 +79,8 @@ public String describe(Object obj) {
 ```java
 // Nested record patterns
 switch (shape) {
-    case Rectangle(ColoredPoint(Point(var x1, var y1), var c1), 
-                   ColoredPoint(Point(var x2, var y2), var c2)) 
+    case Rectangle(ColoredPoint(Point(var x1, var y1), var c1),
+                   ColoredPoint(Point(var x2, var y2), var c2))
         when c1 == c2 -> "Monochrome rectangle";
     case Rectangle r -> "Multi-colored rectangle";
 }
@@ -117,10 +117,10 @@ try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
 try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
     Future<String> user = scope.fork(() -> fetchUser(userId));
     Future<String> order = scope.fork(() -> fetchOrder(orderId));
-    
+
     scope.join();           // Join all subtasks
     scope.throwIfFailed();  // Propagate errors
-    
+
     return processResults(user.resultNow(), order.resultNow());
 }
 ```
@@ -143,7 +143,7 @@ String message = STR."Hello, \{name}! You have \{count} messages.";
 // Safe HTML generation
 String html = HTML."<p>User: \{username}</p>";
 
-// Safe SQL queries  
+// Safe SQL queries
 PreparedStatement stmt = SQL."SELECT * FROM users WHERE id = \{userId}";
 ```
 
@@ -302,11 +302,11 @@ public MyResource() {
 
 private static class CleanupTask implements Runnable {
     private final long nativeResource;
-    
+
     CleanupTask(long nativeResource) {
         this.nativeResource = nativeResource;
     }
-    
+
     public void run() {
         cleanup(nativeResource);
     }
@@ -389,7 +389,7 @@ When configuring garbage collection:
 ### Step-by-Step Upgrade Process
 
 1. **Update Build Tools**: Ensure Maven/Gradle supports JDK 21
-2. **Language Feature Adoption**: 
+2. **Language Feature Adoption**:
    - Start with pattern matching for switch (standard)
    - Add record patterns where beneficial
    - Consider Virtual Threads for I/O heavy applications

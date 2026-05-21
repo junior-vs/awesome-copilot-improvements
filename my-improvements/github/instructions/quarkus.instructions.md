@@ -1,5 +1,5 @@
 ---
-applyTo: '*'
+applyTo: '**/*.java'
 description: 'Quarkus development standards and instructions'
 ---
 
@@ -14,8 +14,8 @@ description: 'Quarkus development standards and instructions'
 
 ## Development Standards
 
-  - Write clear and concise comments for each class, method, and complex logic.
-  - Use Javadoc for public APIs and methods to ensure clarity for consumers.
+  - Prefer self-explanatory code and avoid redundant comments by default.
+  - Add comments/Javadoc only when explicitly requested by the user or required by project/tooling conventions.
   - Maintain a consistent coding style across the project, adhering to Java conventions.
   - Adhere to the Quarkus coding standards and best practices for optimal performance and maintainability.
   - Follow Jarkarta EE and MicroProfile conventions, ensuring clarity in package organization.

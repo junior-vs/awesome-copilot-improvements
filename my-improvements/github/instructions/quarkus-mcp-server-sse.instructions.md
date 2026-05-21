@@ -1,5 +1,5 @@
 ---
-applyTo: '*'
+applyTo: '**/*.java'
 description: 'Quarkus and MCP Server with HTTP SSE transport development standards and instructions'
 ---
 # Quarkus MCP Server

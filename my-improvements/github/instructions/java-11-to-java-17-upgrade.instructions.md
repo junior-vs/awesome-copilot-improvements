@@ -1,5 +1,5 @@
 ---
-applyTo: ["*"]
+applyTo: '**/*.java'
 description: "Comprehensive best practices for adopting new Java 17 features since the release of Java 11."
 ---
 

@@ -8,6 +8,7 @@ applyTo: '**/*.java'
 Write clean, maintainable, and modern Java code targeting **JDK 21 LTS**.
 
 > **Scope & Safety**
+> - Always prioritize what is explicitly defined in the project (build files, toolchain, parent BOM, and repository conventions) before applying generic guidance.
 > - Target: JDK 21 LTS stable features only. Do **not** generate code using preview or JDK 22+ features unless the build files explicitly target that version and the user opts in.
 > - Never include real secrets, API keys, or passwords in examples. Use placeholders: `{{API_KEY}}`, `{{DB_PASSWORD}}`, `user@example.com`.
 > - All generated code must pass **SonarLint** and **Checkstyle** analysis.
@@ -29,6 +30,7 @@ Write clean, maintainable, and modern Java code targeting **JDK 21 LTS**.
 - **Composition over Inheritance**: Use `sealed` interfaces for strict hierarchies and favor composition (*Effective Java*, Item 18).
 - **Logging Boundary**: Log only at the application layer (services, controllers, adapters). Never log inside pure domain/business logic.
 - **Static Analysis**: Avoid high cognitive complexity. Always use try-with-resources for `AutoCloseable`. When a Sonar rule conflicts with style, the Sonar rule takes precedence to keep CI green.
+- **Comments and Javadoc**: Prefer self-explanatory code and avoid redundant comments. Only require extensive comments/Javadoc when explicitly requested by the user or required by project/tooling conventions.
 
 ---
 
@@ -176,7 +178,7 @@ try (var lines = Files.lines(path)) {
 ### Documentation (Javadoc)
 
 - Document the **contract and invariants**, not the implementation (*Effective Java*, Item 56).
-- Use `@param`, `@return`, and `@throws` on all public API methods.
+- When Javadoc is required (explicit user request, project convention, or static analysis), use `@param`, `@return`, and `@throws` consistently on public API methods.
 - Use `@Override` on every method that overrides or implements.
 - Use `@Nullable` / `@NotNull` (JSR-305) to assist static analysis.
 - Mark deprecated APIs with `@Deprecated(since="x.y", forRemoval=true)` and plan removal for a major version.

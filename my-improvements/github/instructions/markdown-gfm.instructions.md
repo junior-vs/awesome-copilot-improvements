@@ -50,7 +50,7 @@ Apply these rules per the [GFM spec](https://github.github.com/gfm/) when writin
 - **Links**: Inline `[text](url "title")` or reference `[text][label]` / `[text][]` / `[text]`. Link text may contain inlines but not other links. Destination in `<…>` allows spaces. No whitespace between link text and `(` or `[`.
 - **Images**: `![alt](src "title")` — same syntax as links prefixed with `!`. Alt text is the plain-string content of the description.
 - **Autolinks**: `<URI>` or `<email>` in angle brackets. Scheme must be 2–32 characters starting with an ASCII letter.
-- **Autolinks** *(extension)*: Bare `http://`, `https://`, `www.` URLs and bare email addresses auto-link without angle brackets. Trailing punctuation excluded; parentheses balanced.
+- **Autolinks**: `<URI>` or `<email>` in angle brackets. Scheme must be 2–32 characters starting with an ASCII letter. Bare URLs are not auto-linked in CommonMark (requires angle brackets).
 - **Raw HTML**: Open/close tags, comments (`<!-- -->`), processing instructions (`<? ?>`), declarations (`<!…>`), CDATA (`<![CDATA[…]]>`) are passed through.
 - **Disallowed raw HTML** *(extension)*: `<title>`, `<textarea>`, `<style>`, `<xmp>`, `<iframe>`, `<noembed>`, `<noframes>`, `<script>`, `<plaintext>` have their leading `<` replaced with `&lt;`.
 - **Hard line breaks**: Two+ trailing spaces or `\` before a line ending. Not recognized in code spans or HTML tags.
