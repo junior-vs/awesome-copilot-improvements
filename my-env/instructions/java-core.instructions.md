@@ -18,6 +18,8 @@ Write clean, maintainable, and modern Java code targeting **JDK 21 LTS**.
 > 2. Static analysis rules (SonarQube, Checkstyle)
 > 3. These guidelines
 > 4. Google Java Style Guide
+>
+> **See also**: `java-functional-v2_instructions.md` — immutability, pure functions, `Result<T,E>`, Functor/Monad patterns, higher-order functions, and functional architecture.
 
 ---
 
@@ -30,7 +32,7 @@ Write clean, maintainable, and modern Java code targeting **JDK 21 LTS**.
 - **Composition over Inheritance**: Use `sealed` interfaces for strict hierarchies and favor composition (*Effective Java*, Item 18).
 - **Logging Boundary**: Log only at the application layer (services, controllers, adapters). Never log inside pure domain/business logic.
 - **Static Analysis**: Avoid high cognitive complexity. Always use try-with-resources for `AutoCloseable`. When a Sonar rule conflicts with style, the Sonar rule takes precedence to keep CI green.
-- **Comments and Javadoc**: Prefer self-explanatory code and avoid redundant comments. Only require extensive comments/Javadoc when explicitly requested by the user or required by project/tooling conventions.
+- **Comments and Javadoc**: Prefer self-explanatory code. Only require extensive Javadoc when explicitly requested or required by project conventions.
 
 ---
 
@@ -44,12 +46,15 @@ Use these features freely — they are **not** preview:
 | Sealed Classes | JEP 409 | JDK 17 |
 | Pattern Matching for `instanceof` | JEP 394 | JDK 16 |
 | Pattern Matching for `switch` | JEP 441 | **JDK 21** |
+| Record Patterns | JEP 440 | **JDK 21** |
 | Text Blocks | JEP 378 | JDK 15 |
 | `var` (local type inference) | JEP 286 | JDK 10 |
 | Sequenced Collections | JEP 431 | **JDK 21** |
 | `Stream.toList()` | — | JDK 16 |
 
-> **Preview in JDK 21 — do not use in production:** Structured Concurrency (JEP 453), Scoped Values (JEP 446), Unnamed Variables (JEP 443), Unnamed Classes (JEP 445).
+> **Not available in JDK 21:** Unnamed Variables `_` (stable JDK 22), `Stream.gather()` (stable JDK 24), Primitive Patterns in switch (JDK 25). Do not generate these for JDK 21 targets.
+>
+> **Preview in JDK 21 — do not use in production:** Structured Concurrency (JEP 453), Scoped Values (JEP 446), Unnamed Classes (JEP 445).
 
 ---
 
@@ -70,15 +75,15 @@ public record Money(BigDecimal amount, String currency) {
 }
 ```
 
-- Do not use `get` prefix on record accessors (use `order.id()`, not `order.getId()`).
+- Do not use `get` prefix on record accessors (`order.id()`, not `order.getId()`).
 - Use Record Patterns (JDK 21) for clean deconstruction in `switch` and `instanceof`.
 
 ```java
 // Good: Record deconstruction in switch (JDK 21)
 return switch (payment) {
     case CreditCard(var num, var expiry) when isExpired(expiry) -> throw new PaymentException("Expired card");
-    case CreditCard(var num, var expiry) -> processCredit(num);
-    case DigitalWallet(var provider) -> processDigital(provider);
+    case CreditCard(var num, var expiry)                        -> processCredit(num);
+    case DigitalWallet(var provider)                            -> processDigital(provider);
 };
 ```
 
@@ -89,22 +94,24 @@ Use `sealed` interfaces to model Algebraic Data Types (ADTs) where the set of su
 ```java
 // Good: Closed type hierarchy with exhaustive handling
 public sealed interface OrderResult permits OrderResult.Success, OrderResult.Failure {
-    record Success(Order order) implements OrderResult {}
-    record Failure(String reason, ErrorCode code) implements OrderResult {}
+    record Success(Order order)                    implements OrderResult {}
+    record Failure(String reason, ErrorCode code)  implements OrderResult {}
 }
 
 // Exhaustive switch — no default branch needed
 var message = switch (result) {
-    case OrderResult.Success(var order) -> "Loaded: " + order.id();
+    case OrderResult.Success(var order)        -> "Loaded: " + order.id();
     case OrderResult.Failure(var reason, var code) -> "Error [%s]: %s".formatted(code, reason);
 };
 ```
 
-### 3. Sequenced Collections (JDK 21+)
+- Never add a `default` clause when switching over a sealed hierarchy — it hides unhandled variants when new subtypes are added.
+
+### 3. Sequenced Collections (JDK 21)
 
 Use `SequencedCollection` APIs when element order matters.
 
-- Use `list.getFirst()` and `list.getLast()` — avoid `list.get(0)` and `list.get(list.size() - 1)`.
+- Use `list.getFirst()` / `list.getLast()` — avoid `list.get(0)` / `list.get(list.size() - 1)`.
 - Use `list.reversed()` instead of manual reversal.
 
 ### 4. Streams and Functional Pipelines
@@ -125,6 +132,8 @@ users.stream().collect(groupingBy(User::getDept,
     mapping(User::getName, filtering(n -> n.length() > 5, toList()))));
 ```
 
+For advanced pipeline composition, named predicates, and `Function`/`Predicate` combinators, see `java-functional-v2_instructions.md`.
+
 ### 5. Enum Patterns
 
 Use Enums over `int` or `String` constants. Prefer behavioral enums with functional fields over large `switch` blocks (*Effective Java*, Item 34).
@@ -132,8 +141,8 @@ Use Enums over `int` or `String` constants. Prefer behavioral enums with functio
 ```java
 // Good: Strategy Enum
 public enum Operation {
-    PLUS  ((x, y) -> x + y),
-    MINUS ((x, y) -> x - y);
+    PLUS ((x, y) -> x + y),
+    MINUS((x, y) -> x - y);
 
     private final BinaryOperator<Double> operator;
     Operation(BinaryOperator<Double> op) { this.operator = op; }
@@ -151,13 +160,16 @@ Follow the [Google Java Style Guide](https://google.github.io/styleguide/javagui
 
 | Identifier | Style | Example |
 | :--- | :--- | :--- |
-| Classes / Records / Interfaces | `UpperCamelCase` | `OrderService`, `UserRecord` |
+| Classes / Records / Interfaces / Sealed types | `UpperCamelCase` | `OrderService`, `OutOfStock` |
 | Methods | `lowerCamelCase` verb | `calculateTotal`, `isAvailable` |
-| Record Components | `lowerCamelCase` noun (no `get` prefix) | `id`, `createdAt` |
-| Constants | `UPPER_SNAKE_CASE` | `MAX_RETRIES` |
+| Record components | `lowerCamelCase` noun (no `get` prefix) | `id`, `createdAt` |
+| Constants (`static final`) | `UPPER_SNAKE_CASE` | `MAX_RETRIES` |
 | Local variables / `var` | `lowerCamelCase`, descriptive | Avoid `data`, `list1` |
+| Boolean method / predicate | question form | `isActive()`, `hasDiscount()` |
+| Test method | `lowerCamelCase` | `methodName_StateUnderTest_ExpectedBehavior` |
 
-- Use `var` only when the type is obvious from the right-hand side (e.g., `var list = new ArrayList<String>()`).
+- Use `var` only when the inferred type is **immediately obvious** from the right-hand side.
+- For `Function` and `Predicate` naming conventions, see `java-functional-v2_instructions.md`.
 
 ### Exception Handling
 
@@ -165,6 +177,8 @@ Follow the [Google Java Style Guide](https://google.github.io/styleguide/javagui
 - Use checked exceptions only for truly recoverable business conditions.
 - Never catch `Throwable` or bare `Exception`. Catch the most specific subtype.
 - Catch blocks must log, rethrow, or handle — never silently swallow.
+- Always chain the original cause to preserve the full stack trace.
+- Restore the interrupt flag when catching `InterruptedException`.
 
 ```java
 // Good: Try-with-resources + specific exception + cause chaining
@@ -173,21 +187,44 @@ try (var lines = Files.lines(path)) {
 } catch (IOException e) {
     throw new UncheckedIOException("Failed to read config: " + path, e);
 }
+
+// Good: InterruptedException always restores the interrupt flag
+try {
+    return httpClient.send(request, bodyHandler);
+} catch (InterruptedException e) {
+    Thread.currentThread().interrupt(); // mandatory — restore the flag
+    throw new IntegrationException("Request interrupted: " + request.uri(), e);
+}
 ```
+
+Define a sealed exception hierarchy per domain so adapters can discriminate precisely:
+
+```java
+// Good: Sealed exception hierarchy mirrors domain structure
+sealed class DomainException extends RuntimeException
+    permits UserNotFoundException, OrderProcessingException {
+    DomainException(String message)                  { super(message); }
+    DomainException(String message, Throwable cause) { super(message, cause); }
+}
+```
+
+For modeling **expected business failures as values** (not exceptions), see `Result<T,E>` in `java-functional-v2_instructions.md`.
 
 ### Documentation (Javadoc)
 
 - Document the **contract and invariants**, not the implementation (*Effective Java*, Item 56).
-- When Javadoc is required (explicit user request, project convention, or static analysis), use `@param`, `@return`, and `@throws` consistently on public API methods.
+- Use `@param`, `@return`, and `@throws` on all public API members when Javadoc is required.
 - Use `@Override` on every method that overrides or implements.
 - Use `@Nullable` / `@NotNull` (JSR-305) to assist static analysis.
-- Mark deprecated APIs with `@Deprecated(since="x.y", forRemoval=true)` and plan removal for a major version.
+- Mark deprecated APIs with `@Deprecated(since="x.y", forRemoval=true)`.
+- Use `@implSpec` to declare that a method is a pure function (no I/O, no mutation).
 
 ### Collection Standards
 
 - Declare variables as `List`, `Set`, `Map` — never `ArrayList` or `HashMap` (*Effective Java*, Item 64).
 - Use `List.of()`, `Set.of()`, `Map.of()` for read-only collections.
 - Store defensive copies in constructors: `this.items = List.copyOf(items)`.
+- Never expose internal mutable collections through accessor methods.
 
 ### Resource Management
 
@@ -199,19 +236,32 @@ try (var conn = dataSource.getConnection();
      var stmt = conn.prepareStatement(SQL)) {
     // use conn and stmt
 }
+
+// Avoid: close() not reached if an exception is thrown before it — resource leak (Sonar S2095)
+Connection conn = dataSource.getConnection();
+conn.close();
 ```
+
+### Annotations
+
+- Use `@Override` on every method that overrides or implements a supertype member.
+- Use `@Nullable` / `@NotNull` (JSR-305) to signal nullability to static analysis.
+- Never suppress warnings without a comment explaining the specific, justified reason.
+
+---
 
 ## Defensive Programming
 
-Treat every input as potentially incorrect until proven otherwise. The goal is to make invalid states unrepresentable and to fail loudly at the earliest possible point — never silently.
+Treat every input as potentially incorrect until proven otherwise. Make invalid states unrepresentable and fail loudly at the earliest possible point — never silently.
 
 ### 1. Input Validation
 
-Validate all public API arguments immediately at the entry point. Never assume that callers respect contracts.
+Validate all public API arguments immediately at the entry point.
 
 - Use `Objects.requireNonNull(value, "descriptive message")` for mandatory references.
 - Use guard clauses with `IllegalArgumentException` for domain invariants.
 - Validate at the **boundary** — don't propagate unvalidated data into domain logic.
+
 ```java
 // Good: Validation at the entry point — invalid state never enters the domain
 public OrderService(InventoryService inventory, AuditLog auditLog) {
@@ -219,14 +269,7 @@ public OrderService(InventoryService inventory, AuditLog auditLog) {
     this.auditLog  = Objects.requireNonNull(auditLog,  "auditLog must not be null");
 }
 
-Result<Order, OrderError> place(Cart cart, Customer customer) {
-    Objects.requireNonNull(cart,     "cart must not be null");
-    Objects.requireNonNull(customer, "customer must not be null");
-    if (cart.items().isEmpty()) return Result.err(new OrderError.InvalidCart("Cart is empty"));
-    // domain logic runs only with validated inputs
-}
-
-// Avoid: Validation deferred or absent — NullPointerException surfaces deep in the call stack
+// Avoid: Validation absent — NullPointerException surfaces deep in the call stack
 Result<Order, OrderError> place(Cart cart, Customer customer) {
     return inventory.check(cart.items()) // NPE here if cart is null
         .flatMap(this::createOrder);
@@ -235,7 +278,8 @@ Result<Order, OrderError> place(Cart cart, Customer customer) {
 
 ### 2. Invariant Enforcement
 
-Use compact constructors in Records and constructors in classes to encode invariants at construction time. An object that has been constructed is always valid — no external validation step is needed.
+Use compact constructors in Records to encode invariants at construction time. A constructed object is always valid.
+
 ```java
 // Good: Invariants encoded in the type — Email is always valid after construction
 record Email(String value) {
@@ -247,82 +291,38 @@ record Email(String value) {
     }
 }
 
-// Good: Numeric invariant with normalization
-record PageRequest(int page, int size) {
-    PageRequest {
-        if (page < 0) throw new IllegalArgumentException("page must be >= 0, was: " + page);
-        if (size < 1) throw new IllegalArgumentException("size must be >= 1, was: " + size);
-        size = Math.min(size, 100); // normalize — never trust caller-provided limits
-    }
-}
-
 // Avoid: Invariant enforced externally — invalid state is constructable and spreadable
 record Email(String value) {}
-// Callers must remember to validate — and they often don't
 ```
 
 ### 3. Defensive Copies
 
-When accepting or returning mutable objects, always copy them. A `record` with a `final` field pointing to a mutable collection is only shallowly immutable — the contents can still be modified by the caller.
+When accepting or returning mutable objects, always copy them.
+
 ```java
 // Good: Defensive copy at construction — caller mutations have no effect
 record Department(String name, List<Employee> employees) {
     Department {
         Objects.requireNonNull(employees, "employees must not be null");
-        employees = List.copyOf(employees); // snapshot; unmodifiable
+        employees = List.copyOf(employees);
     }
 }
 
-// Good: Defensive copy on return from a class with mutable internal state
+// Good: Defensive copy on return
 public final class Schedule {
     private final List<LocalDate> holidays = new ArrayList<>();
-
-    public List<LocalDate> holidays() {
-        return List.copyOf(holidays); // caller cannot modify internal state
-    }
+    public List<LocalDate> holidays() { return List.copyOf(holidays); }
 }
 
 // Avoid: Record is shallowly immutable — caller retains a reference to the internal list
-record Department(String name, List<Employee> employees) {
-    // No compact constructor: employees field is final but the List itself is mutable
-}
-
-List<Employee> staff = new ArrayList<>(List.of(alice, bob));
-var dept = new Department("Engineering", staff);
-staff.add(mallory); // dept.employees() now contains mallory — unintended
+record Department(String name, List<Employee> employees) {}
 ```
 
 ### 4. Exception Handling as a Defensive Layer
 
-Exceptions are a defensive mechanism for conditions that the domain cannot prevent. Follow these rules to ensure failures are never silently absorbed.
-
-- Catch the **most specific** subtype available — never `Exception` or `Throwable`.
-- Always chain the original cause to preserve the full stack trace for diagnosis.
-- Restore the interrupt flag when catching `InterruptedException`.
-- Never return `null`, an empty string, or a zero as a silent fallback from a catch block.
-```java
-// Good: Specific catch, cause chained, meaningful context in the message
-try (var lines = Files.lines(configPath)) {
-    return lines.map(this::parse).toList();
-} catch (IOException e) {
-    throw new ConfigLoadException("Failed to load config from: " + configPath, e);
-}
-
-// Good: InterruptedException always restores the interrupt flag
-try {
-    return httpClient.send(request, bodyHandler);
-} catch (InterruptedException e) {
-    Thread.currentThread().interrupt(); // mandatory — restore the flag
-    throw new IntegrationException("Request interrupted: " + request.uri(), e);
-}
-
-// Avoid: Generic catch swallows the original type and loses context
-try {
-    return Files.lines(configPath).map(this::parse).toList();
-} catch (Exception e) {         // too broad
-    return List.of();            // silent fallback — caller cannot distinguish success from failure
-}
-```
+- Catch the **most specific** subtype — never `Exception` or `Throwable`.
+- Always chain the original cause to preserve the full stack trace.
+- Never return `null`, an empty string, or zero as a silent fallback from a catch block.
 
 ---
 
@@ -330,7 +330,7 @@ try {
 
 ### 1. Shallow Immutability in Records
 
-Records with mutable components (e.g., `List`, `Date`) are not truly immutable without defensive copies.
+Records with mutable components are not truly immutable without defensive copies.
 
 ```java
 // Avoid: Caller can mutate the internal list
@@ -344,7 +344,7 @@ public record Order(List<String> items) {
 
 ### 2. Non-Exhaustive Pattern Matching on Sealed Types
 
-Use `switch` expressions, not `if/instanceof` chains, for sealed hierarchies. The compiler enforces exhaustiveness.
+Use `switch` expressions, not `if/instanceof` chains, for sealed hierarchies.
 
 ```java
 // Avoid: Silent failure if a new Shape subtype is added
@@ -353,14 +353,14 @@ else if (shape instanceof Square s) { ... }
 
 // Good: Compiler-enforced exhaustiveness
 return switch (shape) {
-    case Circle c  -> Math.PI * c.radius() * c.radius();
-    case Square s  -> s.side() * s.side();
+    case Circle c -> Math.PI * c.radius() * c.radius();
+    case Square s -> s.side() * s.side();
 };
 ```
 
 ### 3. Side Effects in Stream Pipelines
 
-Never modify external state inside `.map()`, `.filter()`, or `.flatMap()`. Use collectors to accumulate results (*Effective Java*, Item 48).
+Never modify external state inside `.map()`, `.filter()`, or `.flatMap()` (*Effective Java*, Item 48).
 
 ```java
 // Avoid: Side effect makes the stream thread-unsafe
@@ -376,8 +376,6 @@ List<String> results = users.stream()
 
 ### 4. `Optional.get()` Without Guard
 
-Calling `.get()` on an empty `Optional` throws `NoSuchElementException`. Use safe unwrapping instead.
-
 ```java
 // Avoid
 String name = findUser(id).get();
@@ -392,8 +390,8 @@ Never use `==` or `synchronized` on `Optional`, `LocalDate`, `Duration`, or simi
 
 ```java
 // Avoid
-if (optA == optB) { ... }           // Undefined behavior
-synchronized (localDate) { ... }    // May throw or deadlock
+if (optA == optB) { ... }        // Undefined behavior
+synchronized (localDate) { ... } // May throw or deadlock
 
 // Good
 if (optA.equals(optB)) { ... }
@@ -401,10 +399,8 @@ if (optA.equals(optB)) { ... }
 
 ### 6. Inefficient SequencedCollection Access
 
-`list.get(0)` on a `LinkedList` is O(n). Use the Sequenced Collections API.
-
 ```java
-// Avoid
+// Avoid: O(n) on LinkedList
 String first = linkedList.get(0);
 
 // Good (JDK 21+)
@@ -417,7 +413,7 @@ String first = linkedList.getFirst();
 
 ### 1. Primitive Obsession
 
-Replace raw primitives (`String`, `int`) used as domain concepts with typed Records.
+Replace raw primitives used as domain concepts with self-validating Records.
 
 ```java
 // Avoid: String passed anywhere, no validation guarantee
@@ -432,7 +428,7 @@ void process(Email email, Money amount) { ... }
 
 ### 2. Deep Nesting (Arrow Code)
 
-Use guard clauses, pattern matching, and functional pipelines to flatten logic.
+Use guard clauses and pattern matching to flatten logic.
 
 ```java
 // Avoid: Three levels of nesting
@@ -458,22 +454,48 @@ Keep methods under ~20 lines. Extract private helpers. Decompose into Records fo
 
 ### 5. Inheritance Abuse
 
-Use `extends` only for true "is-a" relationships. Use composition + interfaces for code reuse (*Effective Java*, Item 18). Use `sealed` to control hierarchies.
+Use `extends` only for true "is-a" relationships. Use composition + interfaces for code reuse (*Effective Java*, Item 18).
+
+### 6. Long Parameter Lists
+
+Keep method parameters to **≤ 4**. Group related parameters into a Record.
+
+```java
+// Avoid
+void registerUser(String name, String email, String role, Locale locale,
+                  boolean sendWelcome, String referralCode) { ... }
+
+// Good
+record UserRegistration(String name, String email, String role, Locale locale) {}
+void registerUser(UserRegistration registration) { ... }
+```
+
+### 7. Anti-Patterns Table
+
+| Anti-Pattern | Reason | Solution |
+| :--- | :--- | :--- |
+| `Optional.get()` without guard | Throws `NoSuchElementException` | Use `orElseThrow()`, `map()`, or `ifPresent()` |
+| `Collectors.toList()` | Returns mutable list | Use `Stream.toList()` (JDK 16+) |
+| `orElse(methodCall())` | Method always evaluated eagerly | Use `orElseGet(() -> methodCall())` |
+| `default` in sealed `switch` | Hides unhandled variants on type additions | Remove `default`; let the compiler enforce |
+| `System.currentTimeMillis()` in logic | Non-deterministic, untestable | Pass `Instant` or `Clock` as argument |
 
 ---
 
 ## Architecture Guidelines
 
-### 1. Functional Domain Modeling
+### 1. Domain Modeling
 
 Model the domain with `sealed` interfaces and `record` classes. The compiler enforces exhaustive handling.
 
 ```java
 public sealed interface PaymentMethod permits CreditCard, PayPal, Crypto {}
 public record CreditCard(String number, String vaultId) implements PaymentMethod {}
-public record PayPal(String email) implements PaymentMethod {}
+public record PayPal(String email)                      implements PaymentMethod {}
 public record Crypto(String walletAddress, String currency) implements PaymentMethod {}
 ```
+
+For pure domain core, I/O-at-the-edges architecture, and `Result<T,E>` error modeling, see `java-functional-v2_instructions.md`.
 
 ### 2. Encapsulation and Access Control
 
@@ -485,26 +507,25 @@ public record Crypto(String walletAddress, String currency) implements PaymentMe
 ### 3. Dependency Inversion and Composition
 
 - Depend on interfaces, not implementations (*Effective Java*, Item 64).
-- Inject dependencies via constructors (prefer records for service components where stateless).
+- Inject dependencies via constructors (prefer records for stateless service components).
 
 ### 4. Service Layer Design
 
 - Design services as **stateless** to ensure thread-safety and scalability.
-- Use records as DTOs between layers (Controller → Service → Repository) to prevent accidental mutation.
+- Use records as DTOs between layers (Controller → Service → Repository).
 
 ### 5. Error Handling Strategy
 
-- **Expected business failures** (`UserNotFound`, `InsufficientFunds`): model as sealed `Result<T, E>` types — the compiler enforces handling.
+- **Expected business failures**: model as sealed `Result<T, E>` types — see `java-functional-v2_instructions.md`.
 - **Infrastructure/programming errors**: use unchecked exceptions with proper cause chaining.
 
 ---
 
 ## Performance
 
-### 1. Profile Before Optimizing (*Effective Java*, Item 67)
+### 1. Profile Before Optimizing
 
-- Use **Java Flight Recorder** (`-XX:StartFlightRecording`) for production profiling with near-zero overhead.
-- Use **JMH** for benchmarks — never `System.currentTimeMillis()`.
+Use **Java Flight Recorder** (`-XX:StartFlightRecording`) and **JMH** for benchmarks. Never use `System.currentTimeMillis()` (*Effective Java*, Item 67).
 
 ### 2. Avoid Unnecessary Boxing
 
@@ -520,10 +541,9 @@ int[] primitive = IntStream.range(0, 1_000_000).toArray();
 
 ### 3. Collection Initialization
 
-Pre-size `ArrayList` and `HashMap` when the size is known to avoid expensive resizing/rehashing.
+Pre-size `ArrayList` and `HashMap` when the size is known.
 
 ```java
-// Good
 var map = new HashMap<String, User>(expectedSize * 4 / 3 + 1);
 ```
 
@@ -531,12 +551,16 @@ var map = new HashMap<String, User>(expectedSize * 4 / 3 + 1);
 
 - Use `+` for simple concatenation (compiler uses `StringConcatFactory`).
 - Use `StringBuilder` only inside loops.
-- Use `.formatted()` or Text Blocks for multiline strings — processed at compile-time, zero runtime overhead.
+- Use `.formatted()` or Text Blocks for multiline strings.
 
-### 5. GC Selection
+### 5. Streams vs Imperative Loops
+
+Streams introduce pipeline object overhead. For **small collections or tight inner loops**, an imperative loop has lower constant overhead. Switch to imperative only if JMH profiling shows measurable overhead on a hot path.
+
+### 6. GC Selection
 
 - **G1GC**: reliable default for most applications.
-- **ZGC (Generational)**: use `-XX:+UseZGC -XX:+ZGenerational` (stable in JDK 21) for low-latency requirements with large heaps.
+- **ZGC (Generational)**: `-XX:+UseZGC -XX:+ZGenerational` (stable JDK 21) for low-latency with large heaps.
 
 ---
 
@@ -544,13 +568,13 @@ var map = new HashMap<String, User>(expectedSize * 4 / 3 + 1);
 
 ### 1. Tooling Stack
 
-- **Framework**: JUnit 5 (Jupiter) — use `@ParameterizedTest`, `@Nested`, `@DisplayName`.
-- **Assertions**: AssertJ — use fluent assertions. Avoid `junit.jupiter.api.Assertions`.
-- **Mocking**: Mockito — use `@Mock`, `@InjectMocks`, and `MockitoExtension`.
+- **Framework**: JUnit 5 — use `@ParameterizedTest`, `@Nested`, `@DisplayName`.
+- **Assertions**: AssertJ — fluent assertions. Avoid `junit.jupiter.api.Assertions`.
+- **Mocking**: Mockito — use `@Mock`, `@InjectMocks`, `MockitoExtension`.
 
 ### 2. Structure: AAA Pattern
 
-- **Naming**: `methodName_Scenario_ExpectedBehavior` (e.g., `withdraw_InsufficientFunds_ThrowsException`).
+- **Naming**: `methodName_Scenario_ExpectedBehavior`.
 - **Isolation**: Tests must not share mutable state. Reset with `@BeforeEach`.
 - **Readability**: Use `@DisplayName` to describe business requirements in plain language.
 
@@ -577,8 +601,6 @@ void constructor_NegativeAmount_ThrowsException() {
 
 ### 5. Parameterized Tests
 
-Avoid duplicated test logic. Use `@ParameterizedTest` for boundary conditions.
-
 ```java
 @ParameterizedTest
 @CsvSource({"10, 2, 5", "20, 4, 5", "100, 10, 10"})
@@ -587,13 +609,30 @@ void divide_ValidInputs_ReturnsExpected(int a, int b, int expected) {
 }
 ```
 
-### 6. Common Issues
+### 6. Mockito — Infrastructure Boundaries Only
 
-| Issue | Solution | Example |
-| :--- | :--- | :--- |
-| Expensive collection resizing | Pre-size collections | `new ArrayList<>(expectedSize)` |
-| Boolean parameter hell | Use Enum or Sealed types | `switch(status)` |
-| Deep inheritance | Favor composition | Private field + Interface delegation |
+Use Mockito only at infrastructure boundaries (Repositories, HTTP clients). Never mock Records or domain value objects — instantiate them directly.
+
+```java
+// Avoid: Mocking domain Records — instantiate them directly
+Order mockOrder = mock(Order.class);
+
+// Good: Infrastructure boundary test
+@ExtendWith(MockitoExtension.class)
+class OrderServiceTest {
+    @Mock OrderRepository repository;
+    @InjectMocks OrderService orderService;
+
+    @Test
+    void placeOrder_WhenItemsAvailable_ReturnsConfirmedOrder() {
+        var order = new Order(List.of(new Item("SKU-1", 2)));
+        when(repository.save(order)).thenReturn(order.withStatus(CONFIRMED));
+        assertThat(orderService.placeOrder(order).status()).isEqualTo(CONFIRMED);
+    }
+}
+```
+
+For pure function testing (no mocks, no setup), see `java-functional-v2_instructions.md`.
 
 ---
 
@@ -601,16 +640,14 @@ void divide_ValidInputs_ReturnsExpected(int a, int b, int expected) {
 
 | Build Tool | Command |
 | :--- | :--- |
-| Maven | `mvn clean install` |
+| Maven | `mvn clean verify` |
 | Gradle (macOS/Linux) | `./gradlew build` |
 | Gradle (Windows) | `gradlew.bat build` |
 | SonarScanner | `sonar-scanner -Dsonar.projectKey=<key>` |
 
-- Maven: declare `<java.version>21</java.version>` in `pom.xml`.
-- Gradle: set `sourceCompatibility = JavaVersion.VERSION_21`.
+- Maven: `<java.version>21</java.version>`
+- Gradle: `sourceCompatibility = JavaVersion.VERSION_21`
 - A green build with failing static analysis is **not acceptable** for merge.
-
-
 
 ---
 
@@ -618,9 +655,11 @@ void divide_ValidInputs_ReturnsExpected(int a, int b, int expected) {
 
 - [JDK 21 Release Notes](https://openjdk.org/projects/jdk/21/)
 - [JEP 441 — Pattern Matching for switch](https://openjdk.org/jeps/441)
+- [JEP 409 — Sealed Classes](https://openjdk.org/jeps/409)
+- [JEP 395 — Records](https://openjdk.org/jeps/395)
 - [JEP 431 — Sequenced Collections](https://openjdk.org/jeps/431)
 - [Google Java Style Guide](https://google.github.io/styleguide/javaguide.html)
-- [Effective Java, 3rd Edition — Joshua Bloch](https://www.oreilly.com/library/view/effective-java/9780134686097/)
 - [JUnit 5 User Guide](https://junit.org/junit5/docs/current/user-guide/)
 - [AssertJ Documentation](https://assertj.github.io/doc/)
 - [SonarQube Java Rules](https://rules.sonarsource.com/java/)
+- *Effective Java* — Joshua Bloch

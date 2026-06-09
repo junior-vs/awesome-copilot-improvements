@@ -7,7 +7,7 @@ applyTo: '**/*.java'
 
 Enforce strict functional programming principles as the **primary design approach**: immutability, pure functions, algebraic data types, and declarative pipelines.
 
-> **Scope**: This is the **functional-first (purista)** instruction. For mixed OOP + functional guidance, see `java.instructions.md`.
+> **Scope**: This is the **functional-first** instruction file. For general Java fundamentals (records, sealed classes, defensive programming, testing structure, build configuration), see `java-core_instructions.md`.
 >
 > **Conflict Resolution Order**
 > 1. Repository build configuration (Maven/Gradle Java version, dependencies)
@@ -22,7 +22,7 @@ Enforce strict functional programming principles as the **primary design approac
 ## General Instructions
 
 - **Default to Immutability**: Treat mutability as an explicit, justified exception (*Effective Java*, Item 17).
-- **Prioritize pure functions**: Methods must produce the same output for the same input with zero observable side effects.
+- **Enforce Pure Functions**: Methods must produce the same output for the same input with zero observable side effects.
 - **Push Side Effects to Boundaries**: Keep the domain core pure. Perform I/O, logging, and DB operations only at the outermost architectural layers (adapters, controllers).
 - **Logging Boundary**: Log only at the application layer — never inside domain logic or pure functions.
 - **Model Failures as Values**: Use sealed `Result<T, E>` for expected business failures. Do not throw exceptions across domain boundaries.
@@ -30,21 +30,44 @@ Enforce strict functional programming principles as the **primary design approac
 
 ---
 
-## JDK 21 Stable Feature Baseline
+## Mental Model: Behaviour as Data
 
-| Feature | Stable Since | Primary Functional Use |
-| :--- | :--- | :--- |
-| Records | JDK 16 | Immutable value objects and DTOs without boilerplate |
-| Sealed Classes | JDK 17 | Closed-hierarchy domain states and ADTs (sum types) |
-| Pattern Matching for `instanceof` | JDK 16 | Type check + binding without manual cast |
-| Pattern Matching for `switch` | JDK 21 | Exhaustive structural dispatch over sealed types |
-| Record Patterns | JDK 21 | Destructure records directly in `switch` and `instanceof` |
-| Sequenced Collections | JDK 21 | First/last access with `getFirst()`, `getLast()` |
-| `Stream.toList()` | JDK 16 | Terminal collector returning unmodifiable list |
-| Text Blocks | JDK 15 | Multiline SQL, JSON, templates without concatenation |
-| `var` | JDK 10 | Local type inference when type is obvious |
+In OOP, behaviour lives in methods — it belongs to objects. In functional programming,
+behaviour is a value: you assign it, pass it, store it, and compose it like any other data.
 
-> **Not available in JDK 21:** Unnamed Variables `_` (stable JDK 22), `Stream.gather()` (stable JDK 24), Primitive Patterns in switch (JDK 25). Do not generate these for JDK 21 targets.
+```java
+// A function is a value — assignable and passable
+Function<Order, BigDecimal> discount10 = o -> o.total().multiply(BigDecimal.valueOf(0.9));
+Function<Order, BigDecimal> discount20 = o -> o.total().multiply(BigDecimal.valueOf(0.8));
+
+// Store behaviour in a structure
+Map<String, Function<Order, BigDecimal>> rules = Map.of(
+    "VIP",      discount20,
+    "STANDARD", discount10
+);
+
+// Pass behaviour as an argument — the mechanism is decoupled from the decision
+BigDecimal apply(Order order, Function<Order, BigDecimal> rule) {
+    return rule.apply(order);
+}
+
+// Compose behaviour from smaller pieces
+Function<Order, Order> validate      = o -> { /* validate */ return o; };
+Function<Order, Order> applyTax      = o -> o.withTax(computeTax(o));
+Function<Order, Order> applyDiscount = o -> o.withTotal(discount10.apply(o));
+
+Function<Order, Order> pipeline = validate
+    .andThen(applyTax)
+    .andThen(applyDiscount);
+
+Order result = pipeline.apply(order);
+```
+
+This is the foundation behind every pattern in this guide: `Stream` pipelines pass
+`Predicate` and `Function` values; `Result.map` takes a function to transform the
+success path; `Optional.orElseGet` takes a `Supplier` to defer a computation.
+
+> **OOP structures the system. Functional programming structures the logic inside it.**
 
 ---
 
@@ -61,14 +84,14 @@ Enforce strict functional programming principles as the **primary design approac
 // Good: Immutable record with validation and defensive copy
 record PageRequest(int page, int size) {
     PageRequest {
-        if (page < 0)  throw new IllegalArgumentException("page must be >= 0");
-        if (size < 1)  throw new IllegalArgumentException("size must be >= 1");
+        if (page < 0) throw new IllegalArgumentException("page must be >= 0");
+        if (size < 1) throw new IllegalArgumentException("size must be >= 1");
         size = Math.min(size, 100);
     }
 }
 
 record Config(List<String> hosts) {
-    Config { hosts = List.copyOf(hosts); } // caller mutations have no effect
+    Config { hosts = List.copyOf(hosts); }
 }
 
 // Avoid: Mutable class exposes state to uncontrolled modification
@@ -98,7 +121,7 @@ static BigDecimal applyDiscount(BigDecimal price, double rate) {
 }
 ```
 
-Use **memoization** for expensive pure computations to preserve performance:
+Use **memoization** for expensive pure computations:
 
 ```java
 public class TaxCalculator {
@@ -127,8 +150,8 @@ sealed interface PaymentResult permits PaymentResult.Success, PaymentResult.Fail
 // Good: Exhaustive switch with record deconstruction — no default needed
 String message(PaymentResult result) {
     return switch (result) {
-        case PaymentResult.Success(var id, var amt) -> "Paid %s: %s".formatted(id, amt);
-        case PaymentResult.Failure(var reason, var code) -> "Failed [%d]: %s".formatted(code, reason);
+        case PaymentResult.Success(var id, var amt)       -> "Paid %s: %s".formatted(id, amt);
+        case PaymentResult.Failure(var reason, var code)  -> "Failed [%d]: %s".formatted(code, reason);
     };
 }
 
@@ -136,12 +159,12 @@ String message(PaymentResult result) {
 String message(PaymentResult result) {
     return switch (result) {
         case PaymentResult.Success s -> "Paid";
-        default -> "Unknown"; // silent mismatch on new variants
+        default -> "Unknown";
     };
 }
 ```
 
-### 4. Result<T, E> — Failures as Values
+### 4. Result\<T, E\> — Failures as Values
 
 > **Critical:** Always declare `Result<T, E>` with an **unbounded** `E`. Never use `E extends Exception` — it forces domain errors to be throwable objects, contradicting the principle that failures are values.
 
@@ -263,7 +286,7 @@ Optional<Config> config = localConfig()
 // Avoid: Imperative unwrapping defeats the purpose of Optional
 Optional<User> opt = findUser(id);
 if (opt.isPresent()) {
-    return opt.get().name(); // equivalent to a null check
+    return opt.get().name();
 }
 return null;
 
@@ -273,7 +296,7 @@ Config cfg = localConfig().orElse(fetchRemoteConfig());
 
 ### 7. Higher-Order Functions and Composition
 
-Use `.and()`, `.or()`, `.andThen()`, and `.compose()` to build complex behavior from small, testable, named functions.
+Use `.and()`, `.or()`, `.andThen()`, and `.compose()` to build complex behaviour from small, testable, named functions.
 
 ```java
 // Good: Composed transformations
@@ -286,13 +309,13 @@ Function<String, String> formatName = normalize.andThen(upperFirst);
 Function<Double, Function<BigDecimal, BigDecimal>> computeTax =
     rate -> amount -> amount.multiply(BigDecimal.valueOf(1 + rate));
 
-var applyVAT = computeTax.apply(0.23); // Specialized function
+var applyVAT = computeTax.apply(0.23);
 BigDecimal total = applyVAT.apply(new BigDecimal("100.00"));
 ```
 
 ### 8. Lazy Evaluation
 
-Defer computation until it is actually needed using `Supplier<T>`. Always use `.orElseGet(Supplier)` on `Optional` for alternative computations — never `.orElse(methodCall())`.
+Defer computation until needed using `Supplier<T>`. Always use `.orElseGet(Supplier)` on `Optional` — never `.orElse(methodCall())`.
 
 ```java
 // Good: Supplier defers expensive computation
@@ -310,7 +333,7 @@ log.debug("Report: {}", generateFullReport(data));
 Java (through JDK 25) does **not** support tail-call optimization. Prefer iterative alternatives or the Trampoline pattern for deep recursion.
 
 ```java
-// Avoid: StackOverflowError for large inputs — no JVM tail-call optimization
+// Avoid: StackOverflowError for large inputs
 long factorial(long n) {
     if (n <= 1) return 1;
     return n * factorial(n - 1);
@@ -323,7 +346,7 @@ long factorial(long n) {
 
 // Good: Trampoline for naturally recursive algorithms
 sealed interface Trampoline<T> {
-    record Done<T>(T value) implements Trampoline<T> {}
+    record Done<T>(T value)                    implements Trampoline<T> {}
     record More<T>(Supplier<Trampoline<T>> next) implements Trampoline<T> {}
 
     default T evaluate() {
@@ -335,11 +358,11 @@ sealed interface Trampoline<T> {
     }
 }
 
+// Usage: factTrampoline(10_000, 1).evaluate() — safe for any depth
 Trampoline<Long> factTrampoline(long n, long acc) {
     if (n <= 1) return new Trampoline.Done<>(acc);
     return new Trampoline.More<>(() -> factTrampoline(n - 1, n * acc));
 }
-// Usage: factTrampoline(10_000, 1).evaluate() — safe for any depth
 ```
 
 ### 10. Validation Styles
@@ -360,88 +383,9 @@ record ValidationResult<T>(T value, List<String> errors) {
 
 ---
 
-## Exception Handling
-
-**Expected business failures are values. Unexpected infrastructure errors are exceptions.**
-
-### Rule 1 — Infrastructure Failures Use Domain-Specific Unchecked Exceptions
-
-Always chain the original cause. Never use bare `RuntimeException` or `Exception`.
-
-```java
-// Good: Cause chained; specific type allows precise handling by adapters
-Order save(Order order) {
-    try {
-        return db.insert(order);
-    } catch (SQLException e) {
-        throw new DataAccessException("Failed to persist order id=" + order.id(), e);
-    }
-}
-
-// Good: InterruptedException always restores the interrupt flag
-Response call(HttpRequest request) {
-    try {
-        return httpClient.send(request, bodyHandler);
-    } catch (IOException e) {
-        throw new IntegrationException("External call failed: " + request.uri(), e);
-    } catch (InterruptedException e) {
-        Thread.currentThread().interrupt(); // mandatory — restore interrupt flag
-        throw new IntegrationException("Call interrupted: " + request.uri(), e);
-    }
-}
-
-// Avoid: Generic exception loses all context
-throw new RuntimeException("Error");
-
-// Avoid: Original cause discarded; root stack trace permanently lost
-throw new DataAccessException("Failed to save"); // missing ", e"
-```
-
-### Rule 2 — Never Swallow Exceptions
-
-Every catch block must: rethrow with context, log and rethrow, or handle with an explicit alternative. Returning `null` or an empty fallback silently corrupts flow.
-
-```java
-// Good
-try {
-    return Files.readString(path);
-} catch (IOException e) {
-    throw new DataLoadException("Failed to read config: " + path, e);
-}
-
-// Avoid: caller cannot distinguish "file empty" from "read failed"
-try {
-    return Files.readString(path);
-} catch (IOException e) {
-    return null;
-}
-```
-
-### Rule 3 — Sealed Exception Hierarchy at the Adapter Boundary
-
-Define a sealed exception hierarchy per domain so that adapters and error handlers can discriminate precisely. Throw domain exceptions **only at the adapter boundary** — never inside the functional core.
-
-```java
-// Good: Sealed exception hierarchy mirrors domain structure
-sealed class DomainException extends RuntimeException
-    permits UserNotFoundException, OrderProcessingException {
-    DomainException(String message)                  { super(message); }
-    DomainException(String message, Throwable cause) { super(message, cause); }
-}
-
-final class UserNotFoundException extends DomainException {
-    UserNotFoundException(String userId) { super("User not found: " + userId); }
-}
-
-// Avoid: Generic exception — cannot be handled differently by framework error mappers
-throw new RuntimeException("Processing failed");
-```
-
----
-
 ## Functor and Monad Patterns
 
-`Optional`, `Stream`, `CompletableFuture`, and `Result<T, E>` implement Functor and Monad patterns. Understanding the laws prevents incorrect implementations.
+`Optional`, `Stream`, `CompletableFuture`, and `Result<T, E>` implement Functor and Monad patterns.
 
 **Functor laws for `map`:**
 - **Identity**: `functor.map(x -> x)` equals `functor`.
@@ -454,14 +398,14 @@ throw new RuntimeException("Processing failed");
 
 ```java
 // Functor: map transforms the inner value, preserving the wrapper
-Optional<String> name  = findUser(id).map(User::name);           // Optional<User> → Optional<String>
-List<String>     emails = users.stream().map(User::email).toList(); // Stream<User> → Stream<String>
+Optional<String> name   = findUser(id).map(User::name);
+List<String>     emails = users.stream().map(User::email).toList();
 
 // Monad: flatMap sequences operations that each produce a wrapped value
 Optional<String> city = findUser(id)
-    .flatMap(User::address)    // User → Optional<Address>
-    .flatMap(Address::city)    // Address → Optional<String>
-    .map(String::toUpperCase); // String → String (Functor map)
+    .flatMap(User::address)
+    .flatMap(Address::city)
+    .map(String::toUpperCase);
 
 // Result monad: monadic chaining short-circuits on first Err
 Result<OrderConfirmation, OrderError> result = validateCart(cart)
@@ -496,7 +440,7 @@ record Email(String value) {
     }
 }
 
-// Good: Pure domain core + I/O at the edge
+// Good: Pure domain core — total() has no I/O
 record Order(List<LineItem> items, Discount discount) {
     BigDecimal total() {
         return items.stream()
@@ -506,10 +450,11 @@ record Order(List<LineItem> items, Discount discount) {
     }
 }
 
+// I/O pushed to the edge — service layer only
 class OrderService {
     OrderConfirmation place(Order order) {
-        var saved = repository.save(order);             // I/O at the edge
-        eventBus.publish(new OrderPlaced(saved.id()));  // I/O at the edge
+        var saved = repository.save(order);            // I/O at the edge
+        eventBus.publish(new OrderPlaced(saved.id())); // I/O at the edge
         return new OrderConfirmation(saved.id(), saved.total());
     }
 }
@@ -522,25 +467,52 @@ class Email {
 
 ---
 
+## Exception Handling
+
+**Expected business failures are values. Unexpected infrastructure errors are exceptions.**
+
+Infrastructure failures use domain-specific unchecked exceptions — always chain the original cause:
+
+```java
+// Good: Cause chained; specific type allows precise handling
+Order save(Order order) {
+    try {
+        return db.insert(order);
+    } catch (SQLException e) {
+        throw new DataAccessException("Failed to persist order id=" + order.id(), e);
+    }
+}
+
+// Avoid: Generic exception loses all context
+throw new RuntimeException("Error");
+
+// Avoid: Original cause discarded
+throw new DataAccessException("Failed to save"); // missing ", e"
+```
+
+Never swallow exceptions. Every catch block must rethrow with context, log and rethrow, or handle with an explicit alternative.
+
+For the sealed exception hierarchy pattern, see `java-core_instructions.md`.
+
+---
+
 ## Code Standards
 
 ### Naming Conventions
 
-Follow the [Google Java Style Guide](https://google.github.io/styleguide/javaguide.html) with these functional-first additions.
+Follow the [Google Java Style Guide](https://google.github.io/styleguide/javaguide.html) with these functional-first additions:
 
 | Identifier | Style | Guidance |
 | :--- | :--- | :--- |
 | Class / Interface / Record / Sealed error type | `UpperCamelCase` | Nouns: `OrderService`, `OutOfStock`, `Email` |
-| Method | `lowerCamelCase` verb | Transformation names for pure methods: `applyDiscount`, `toInvoice`, `normalize` |
+| Method (pure transformation) | `lowerCamelCase` verb | `applyDiscount`, `toInvoice`, `normalize` |
 | Record component | `lowerCamelCase` noun (no `get` prefix) | `id`, `createdAt`, `totalAmount` |
 | `Function` / `Predicate` variable | `lowerCamelCase` named by behavior | `isEligible`, `toInvoice`, `formatName` |
-| Boolean method / predicate | question form | `isActive()`, `hasDiscount()`, `isEmpty()` |
-| Constant (`static final`) | `UPPER_SNAKE_CASE` | `MAX_RETRIES`, `MIN_ORDER_AMOUNT` |
-| Test method | `lowerCamelCase` | `methodName_StateUnderTest_ExpectedBehavior` |
+| Boolean method / predicate | question form | `isActive()`, `hasDiscount()` |
+| Constant (`static final`) | `UPPER_SNAKE_CASE` | `MAX_RETRIES`, `HIGH_VALUE_THRESHOLD` |
 
-- Pure methods should be named as **transformations**, not commands — they return a new value, they do not mutate.
 - Name `Function` and `Predicate` variables by behavior, not by type (`isEligible`, not `predicate1`).
-- Avoid abbreviations that force the reader to guess context (`registration`, not `reg`; `confirmation`, not `res`).
+- Avoid abbreviations that force the reader to guess context (`registration`, not `reg`).
 
 ### `var` — Local Type Inference
 
@@ -551,55 +523,8 @@ Use `var` only when the inferred type is **immediately obvious** from the right-
 var users   = new ArrayList<User>();
 var timeout = Duration.ofSeconds(30);
 
-// Avoid: Return type is invisible; reader must navigate to the method signature
-var result = userRepository.fetch();   // Optional<User>? List<User>? Result<User, ?>?
-```
-
-### Documentation (Javadoc)
-
-- Document the **contract, invariants, and purity** — not the implementation.
-- Use `@implSpec` to declare that a method is a pure function.
-- Use `@param`, `@return`, and `@throws` on all public API members.
-
-```java
-/**
- * Applies a percentage discount to the given price.
- *
- * @implSpec Pure function. No I/O, no mutation. Safe inside Stream pipelines.
- * @param price the original price; must be non-null and non-negative
- * @param rate  the discount rate in [0.0, 1.0]
- * @return the discounted price, rounded to 2 decimal places (HALF_UP)
- * @throws IllegalArgumentException if {@code rate} is outside [0.0, 1.0]
- */
-public static BigDecimal applyDiscount(BigDecimal price, double rate) { ... }
-```
-
-### Annotations
-
-- Use `@Override` on every method that overrides or implements a supertype member.
-- Use `@Nullable` / `@NotNull` (JSR-305) to signal nullability to static analysis.
-- Never suppress warnings without a comment explaining the specific, justified reason.
-
-### Collection Standards
-
-- Declare variables as `List`, `Set`, `Map` — never `ArrayList`, `HashSet`, `HashMap` (*Effective Java*, Item 64).
-- Use `Stream.toList()` as the default terminal collector.
-- Never expose internal mutable collections through accessor methods.
-
-### Resource Management
-
-Use try-with-resources for **all** `AutoCloseable` types. Manual `close()` calls are silently skipped when an exception is thrown before them.
-
-```java
-// Good
-try (var reader = new BufferedReader(new FileReader(path))) {
-    return reader.readLine();
-}
-
-// Avoid: close() not reached if readLine() throws — resource leak (Sonar S2095)
-BufferedReader reader = new BufferedReader(new FileReader(path));
-String line = reader.readLine();
-reader.close();
+// Avoid: Return type is invisible
+var result = userRepository.fetch(); // Optional<User>? List<User>? Result<User, ?>?
 ```
 
 ### Static Analysis — Key Sonar Rules
@@ -614,98 +539,9 @@ reader.close();
 
 ---
 
-## Common Code Smells
-
-### 1. Primitive Obsession
-
-Replace raw primitives used as domain concepts with self-validating Records.
-
-```java
-// Avoid: Raw string passed anywhere; validation scattered across callers
-void process(String email, double amount) { ... }
-
-// Good: Self-validating domain types
-record Email(String value) {
-    public Email { Objects.requireNonNull(value); /* add regex */ }
-}
-void process(Email email, Money amount) { ... }
-```
-
-### 2. Deep Nesting (Arrow Code)
-
-Use guard clauses, pattern matching, and functional chains.
-
-```java
-// Avoid: Arrow anti-pattern
-Optional<Discount> getDiscount(Order order) {
-    if (order.isEligible()) {
-        if (order.total().compareTo(MINIMUM_ORDER) >= 0) {
-            return Optional.of(new Discount(DISCOUNT_RATE));
-        }
-    }
-    return Optional.empty();
-}
-
-// Good: Guard clauses flatten the happy path
-Optional<Discount> getDiscount(Order order) {
-    if (!order.isEligible()) return Optional.empty();
-    if (order.total().compareTo(MINIMUM_ORDER) < 0) return Optional.empty();
-    return Optional.of(new Discount(DISCOUNT_RATE));
-}
-```
-
-### 3. Long Parameter Lists
-
-Keep method parameters to **≤ 4**. Group related parameters into a Record.
-
-```java
-// Avoid
-void registerUser(String name, String email, String role, Locale locale,
-                  boolean sendWelcome, String referralCode) { ... }
-
-// Good
-record UserRegistration(String name, String email, String role, Locale locale) {}
-void registerUser(UserRegistration registration) { ... }
-```
-
-### 4. Anti-Patterns Table
-
-| Anti-Pattern | Reason | Solution |
-| :--- | :--- | :--- |
-| `System.currentTimeMillis()` in logic | Non-deterministic, untestable | Pass `Instant` or `Clock` as argument |
-| `Optional.get()` without guard | Throws `NoSuchElementException` | Use `orElseThrow()`, `map()`, or `ifPresent()` |
-| Deep recursion | `StackOverflowError` — no JVM TCO | Use `Stream.iterate()` or Trampoline |
-| `default` in sealed `switch` | Hides unhandled variants on type additions | Remove `default`; let the compiler enforce |
-| `Collectors.toList()` | Returns mutable list — misleading | Use `Stream.toList()` (JDK 16+) |
-| `orElse(methodCall())` | Method always evaluated eagerly | Use `orElseGet(() -> methodCall())` |
-
----
-
-## Architecture Guidelines
-
-- Apply **Single Responsibility**: each class has one reason to change.
-- Depend on **interfaces**, not concrete implementations (*Effective Java*, Item 64).
-- Organize packages by **feature/domain** (`com.example.orders`), not by layer (`com.example.controllers`).
-- Prefer **composition over inheritance**. Use functional interfaces + lambdas before class hierarchies.
-- Use `module-info.java` in large codebases to enforce strict API boundaries.
-
-```java
-// module-info.java — Functional domain module
-module com.example.orders {
-    exports com.example.orders.api;     // Public: interfaces, records, Result types
-    // com.example.orders.internal is NOT exported — encapsulated by default
-}
-```
-
----
-
 ## Performance
 
-### 1. Profile Before Optimizing
-
-Use **Java Flight Recorder (JFR)** (`-XX:StartFlightRecording`) and **JMH** for benchmarks. Never use `System.currentTimeMillis()` (*Effective Java*, Item 67).
-
-### 2. Lazy vs Eager
+### Lazy vs Eager
 
 Use `findFirst()`, `anyMatch()`, and `Supplier<T>` to avoid processing elements that are not needed.
 
@@ -723,7 +559,7 @@ List<User> admins = users.stream()
     .toList();
 ```
 
-### 3. Capturing Lambdas and GC Pressure
+### Capturing Lambdas and GC Pressure
 
 Lambdas that capture local variables create a new object per invocation. Non-capturing lambdas and method references are JVM-cached singletons.
 
@@ -738,20 +574,11 @@ private static final Predicate<Order> HIGH_VALUE =
     o -> o.total().compareTo(HIGH_VALUE_THRESHOLD) > 0;
 ```
 
-### 4. Streams vs Imperative Loops
-
-Streams introduce pipeline object overhead. For **small collections or tight inner loops**, an imperative loop has lower constant overhead. For **large collections or complex transformations**, Streams are comparable or better due to JIT optimization. Switch to imperative only if JMH profiling shows measurable overhead on a hot path.
-
 ---
 
-## Testing Standards
+## Testing
 
 Pure functions require no mocks and no setup — test them in complete isolation.
-
-- Use **JUnit 5** (`@Test`, `@ParameterizedTest`, `@Nested`, `@DisplayName`).
-- Use **AssertJ** for fluent assertions.
-- Follow **Arrange-Act-Assert (AAA)** structure.
-- Use **Mockito** only at infrastructure boundaries (Repositories, HTTP clients). Never mock Records or domain value objects — instantiate them directly.
 
 ```java
 // Good: Parameterized pure function test — no mocks, no setup
@@ -768,57 +595,19 @@ class DiscountTest {
             .isEqualByComparingTo(expected);
     }
 }
-
-// Good: Infrastructure boundary test with Mockito
-@ExtendWith(MockitoExtension.class)
-class OrderServiceTest {
-
-    @Mock OrderRepository repository;
-    @InjectMocks OrderService orderService;
-
-    @Test
-    void placeOrder_WhenItemsAvailable_ReturnsConfirmedOrder() {
-        var order = new Order(List.of(new Item("SKU-1", 2)));
-        when(repository.save(order)).thenReturn(order.withStatus(CONFIRMED));
-
-        var result = orderService.placeOrder(order);
-
-        assertThat(result.status()).isEqualTo(CONFIRMED);
-    }
-}
-
-// Avoid: Mocking domain Records — instantiate them directly
-Order mockOrder = mock(Order.class); // unnecessary and misleading
 ```
 
----
-
-## Build and Verification
-
-| Build Tool | Command |
-| :--- | :--- |
-| Maven | `mvn clean verify` |
-| Gradle (macOS/Linux) | `./gradlew build` |
-| Gradle (Windows) | `gradlew.bat build` |
-| SonarScanner | `sonar-scanner -Dsonar.projectKey=<key>` |
-
-- Maven: `<java.version>21</java.version>`
-- Gradle: `sourceCompatibility = JavaVersion.VERSION_21`
-- A green build with failing static analysis is **not acceptable** for merge.
+- Use Mockito **only at infrastructure boundaries** (Repositories, HTTP clients).
+- Never mock Records or domain value objects — instantiate them directly.
+- For the full testing stack (JUnit 5, AssertJ, AAA pattern), see `java-core_instructions.md`.
 
 ---
 
 ## Additional Resources
 
-- [JDK 21 Release Notes](https://openjdk.org/projects/jdk/21/)
 - [JEP 441 — Pattern Matching for switch](https://openjdk.org/jeps/441)
 - [JEP 409 — Sealed Classes](https://openjdk.org/jeps/409)
 - [JEP 395 — Records](https://openjdk.org/jeps/395)
-- [JEP 431 — Sequenced Collections](https://openjdk.org/jeps/431)
-- [Google Java Style Guide](https://google.github.io/styleguide/javaguide.html)
-- [JUnit 5 User Guide](https://junit.org/junit5/docs/current/user-guide/)
-- [AssertJ Documentation](https://assertj.github.io/doc/)
-- [SonarQube Java Rules](https://rules.sonarsource.com/java/)
 - *Effective Java* — Joshua Bloch
 - *Modern Java in Action* — Raoul-Gabriel Urma
 - *Functional Programming in Java* — Pierre-Yves Saumont
