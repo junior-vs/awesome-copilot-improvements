@@ -97,10 +97,11 @@ Remove-Item "C:\links\meu-arquivo.txt"    # arquivo
 
 ```powershell
 
-New-Item -ItemType Junction -Path "skills"  -Target "D:\develop\repos\misc_repos\awesome-copilot-improvements\skills"
-
-New-Item -ItemType Junction -Path "agents"  -Target "D:\develop\repos\misc_repos\awesome-copilot-improvements\agents"
-
+New-Item -ItemType Junction -Path ".agents\skills"  -Target "D:\develop\repos\misc_repos\awesome-copilot-improvements\skills"
+New-Item -ItemType Junction -Path ".github\agents"  -Target "D:\develop\repos\misc_repos\awesome-copilot-improvements\agents"
+New-Item -ItemType Junction -Path ".github\workflows"  -Target "D:\develop\repos\misc_repos\awesome-copilot-improvements\workflows"
+New-Item -ItemType Junction -Path ".github\cookbook"  -Target "D:\develop\repos\misc_repos\awesome-copilot-improvements\cookbook"
+New-Item -ItemType Junction -Path ".github\hooks"  -Target "D:\develop\repos\misc_repos\awesome-copilot-improvements\hooks"
 ```
 
 Get-ChildItem "my-env\.github\instructions" | Select-Object -ExpandProperty Name | Out-File "my-env\lista-instruction.txt"
