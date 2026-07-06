@@ -3,7 +3,7 @@ title: 'Getting Started with the GitHub Copilot app'
 description: 'Learn about the GitHub Copilot app, a desktop experience built for agent-native development. Understand its key features and who it''s for.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-06-17
+lastUpdated: 2026-07-06
 estimatedReadingTime: '8 minutes'
 tags:
   - copilot-app
@@ -47,6 +47,8 @@ The central hub of the Copilot app is the **My Work** view. This dashboard shows
 - **Issues and PRs**: Your inbox of work items from connected repositories
 - **Background automations**: Tasks running in the background, like Agent Merge handling your pull requests
 - **Overall status**: A quick overview of what's in progress, what's done, and what's blocked
+
+In addition to the My Work view, you can also **browse, resume, and switch between sessions directly from the agents screen** *(v1.0.68+)*. This gives you a unified view of both available agents and their active sessions, so you can jump straight from choosing an agent to picking up a previous session without navigating back to My Work first.
 
 Instead of checking GitHub, your CLI, and VS Code for updates, everything is in one place.
 

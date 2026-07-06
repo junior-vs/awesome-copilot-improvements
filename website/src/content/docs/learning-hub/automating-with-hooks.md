@@ -3,7 +3,7 @@ title: 'Automating with Hooks'
 description: 'Learn how to use hooks to automate lifecycle events like formatting, linting, and governance checks during Copilot agent sessions.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-06-25
+lastUpdated: 2026-07-06
 estimatedReadingTime: '8 minutes'
 tags:
   - hooks
@@ -210,7 +210,7 @@ Hooks support two types: `"command"` for running local shell scripts, and `"http
 
 **cwd**: Working directory for the command (relative to repository root).
 
-**timeoutSec**: Maximum execution time in seconds (default: 30). The hook is killed if it exceeds this limit.
+**timeoutSec**: Maximum execution time in seconds (default: 30). The hook is killed if it exceeds this limit. *(v1.0.67+)*: when a hook times out, the current tool call is **allowed to continue** rather than being blocked — the hook exits with an error, but execution is not denied. Prior to v1.0.67, a timed-out hook would cause the tool call to be denied.
 
 **env**: Additional environment variables merged with the existing environment.
 

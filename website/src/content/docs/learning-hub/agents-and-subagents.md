@@ -3,7 +3,7 @@ title: 'Agents and Subagents'
 description: 'Learn how delegated subagents differ from primary agents, when to use them, and how to launch them in VS Code and Copilot CLI.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-01
+lastUpdated: 2026-07-06
 estimatedReadingTime: '9 minutes'
 tags:
   - agents
@@ -44,6 +44,7 @@ Subagents are useful because they are not just "the same agent in another tab." 
 - **Focused instructions**: the subagent can use a tighter role, such as planner, implementer, reviewer, or researcher.
 - **Parallelism**: multiple subagents can work at the same time when tasks do not conflict.
 - **Controlled synthesis**: the parent agent decides what gets brought back into the main conversation.
+- **Inherited tool restrictions**: subagent sessions launched by a custom agent respect the parent agent's tool filter *(v1.0.67+)* — subagents cannot access tools the parent agent was not granted. Custom agents also keep their tool filters when spawning nested subagents *(v1.0.68+)*, so a coordinator agent with a restricted tool set (e.g., `read` and `search` only) cannot be bypassed by delegating to a subagent.
 - **Alternative model selection**: the subagent can use a different AI model to perform a task, so while our main agent might be using a generalist model, a subagent could be configured to use a more specialized one for code review or research.
 
 That isolation is one of the main reasons subagents can outperform a single monolithic agent on larger tasks.
@@ -202,7 +203,7 @@ No. Most of the time the main agent launches them when it decides the task benef
 
 **Can a subagent use a different model or tool set?**
 
-Yes, when the delegated worker is a custom agent with its own frontmatter.
+Yes, when the delegated worker is a custom agent with its own frontmatter. However, note that **subagent sessions always respect the parent agent's tool restrictions** *(v1.0.67+)*: if the parent agent was granted only `read` and `search`, the subagent cannot exceed those permissions, even if it has a broader tool list in its own definition.
 
 **Are subagents always parallel?**
 
