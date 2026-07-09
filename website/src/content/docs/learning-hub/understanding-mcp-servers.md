@@ -3,7 +3,7 @@ title: 'Understanding MCP Servers'
 description: 'Learn how Model Context Protocol servers extend GitHub Copilot with access to external tools, databases, and APIs.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-01
+lastUpdated: 2026-07-09
 estimatedReadingTime: '8 minutes'
 tags:
   - mcp
@@ -288,11 +288,17 @@ For example, a PostgreSQL server that can't connect because `DATABASE_URL` is no
   stderr: Error: DATABASE_URL environment variable is required
 ```
 
-**Diagnosing connection problems with `/mcp show`**: Run `/mcp show` to see the current status of all configured MCP servers — which ones are running, which have failed, and their connection details. When an MCP server name contains whitespace, the failure warning also suggests a directly runnable `/mcp show <name>` command for quick inspection.
+**Diagnosing connection problems with `/mcp show` and `/mcp list`**: Run `/mcp show` to see the current status of all configured MCP servers — which ones are running, which have failed, and their connection details. When an MCP server name contains whitespace, the failure warning also suggests a directly runnable `/mcp show <name>` command for quick inspection.
 
 ```
 /mcp show              # list all servers and their status
 /mcp show postgres     # inspect a specific server
+```
+
+In v1.0.69+, use **`/mcp list`** to see all currently attached MCP servers and their live status. Unlike `/mcp show`, `/mcp list` can be run **while the agent is actively working** — useful for checking which servers are available mid-turn without interrupting the task:
+
+```
+/mcp list              # show attached servers and status during a running session
 ```
 
 **Toggling servers on and off** (v1.0.66+): From the `/mcp` list view, you can **enable or disable individual MCP servers** without editing your config file. Select a server in the list and toggle it — disabled servers won't start in future sessions and their tools won't be available to agents. This is useful for temporarily disabling a server that's causing slowdowns or errors without removing it from your configuration entirely.
@@ -312,7 +318,7 @@ For example, a PostgreSQL server that can't connect because `DATABASE_URL` is no
 - **Keep secrets out of config files**: Use `${input:variableName}` for API keys and connection strings, or load from environment variables.
 - **Document your servers**: Add comments or a README explaining which MCP servers your project uses and why.
 - **Version control carefully**: Commit `.mcp.json` or `.vscode/mcp.json` for shared server configurations, but use `.gitignore` for any files containing credentials.
-- **Test server connectivity**: Verify MCP servers start correctly before relying on them in agent workflows. Use `/mcp show` to check status and read stderr output in any failure warnings.
+- **Test server connectivity**: Verify MCP servers start correctly before relying on them in agent workflows. Use `/mcp show` or `/mcp list` to check status and read stderr output in any failure warnings.
 - **Use the MCP allowlist (experimental)**: In high-security environments, the `MCP_ALLOWLIST` feature flag lets you validate MCP servers against a configured registry, blocking unrecognized servers from loading. MCP servers that are blocked by the allowlist policy are **hidden from `/mcp show`** to avoid confusion — only permitted servers appear in that view. This is an experimental feature for enterprise environments requiring strict control over which MCP servers are permitted.
 
 ### Organization Policy for Third-Party MCP Servers
