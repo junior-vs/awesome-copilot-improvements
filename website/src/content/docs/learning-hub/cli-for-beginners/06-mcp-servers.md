@@ -3,7 +3,7 @@ title: '06 · Connect to GitHub, Databases & APIs'
 description: 'Mirror the source chapter on MCP servers and external integrations for GitHub Copilot CLI.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-06-19
+lastUpdated: 2026-07-10
 ---
 
 ![Chapter 06: MCP Servers](/images/learning-hub/copilot-cli-for-beginners/06/chapter-header.png)
@@ -901,6 +901,7 @@ Beyond `/mcp show`, there are several other commands for managing your MCP serve
 | Command | What It Does |
 |---------|--------------|
 | `/mcp show` | Show all configured MCP servers and their status |
+| `/mcp list` | Show currently attached MCP servers and their status; can be run while Copilot is working |
 | `/mcp add` | Interactive setup for adding a new server |
 | `/mcp edit <server-name>` | Edit an existing server configuration |
 | `/mcp enable <server-name>` | Enable a disabled server |
