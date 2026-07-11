@@ -3,7 +3,7 @@ title: 'Copilot Configuration Basics'
 description: 'Learn how to configure GitHub Copilot at user, workspace, and repository levels to optimize your AI-assisted development experience.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-07
+lastUpdated: 2026-07-11
 estimatedReadingTime: '10 minutes'
 tags:
   - configuration
@@ -258,6 +258,32 @@ This setting persists across sessions once saved to your config.
 
 **When to use**: For repetitive tasks your team performs regularly, like generating tests, creating documentation, or refactoring patterns.
 
+### Repository Model and Effort Pinning
+
+*(v1.0.70+)* A trusted repository can pin the model, reasoning effort level, and context tier for all sessions in that repo, and optionally extend the URL, MCP server, and skill deny lists. Create `.github/copilot/settings.json` (or `.github/copilot/settings.local.json` for personal overrides) to apply these settings automatically whenever anyone opens the repository:
+
+```json
+{
+  "model": "claude-sonnet-4.6",
+  "effortLevel": "high",
+  "contextTier": "large",
+  "denyList": {
+    "urls": ["https://internal-secret.example.com"],
+    "mcpServers": ["untrusted-server"],
+    "skills": ["dangerous-skill"]
+  }
+}
+```
+
+This is especially useful for:
+- **Regulated projects** that require a specific audited model
+- **Cost control** — capping effort or context tier for large repositories
+- **Security** — extending URL or MCP deny lists beyond the user's personal settings
+
+Repository settings are applied after user settings. The repository must be trusted (explicitly opened and accepted) before these settings take effect, protecting users from malicious pinning in untrusted forks.
+
+> **Note**: This file is distinct from `.claude/settings.json` (which controls Claude Code behaviour). Use `.github/copilot/settings.json` for Copilot CLI repository pinning.
+
 ### Instructions Files
 
 Instructions provide persistent context that applies automatically when working in specific files or directories. Store them in `.github/instructions/`.
@@ -433,6 +459,16 @@ The `/settings` command (v1.0.61+) opens an interactive dialog to browse and edi
 
 The settings dialog supports search — type to filter settings by name. Changes take effect immediately.
 
+In v1.0.70+, `/settings` and `/model` both accept `--repo` and `--local` flags to scope the change to the repository or local (`.local`) config file respectively, rather than your global user settings:
+
+```
+/settings --repo          # open repository-scoped settings
+/model --repo             # set the model for this repository
+/model --local claude-sonnet-4.6   # set model in local (non-committed) config
+```
+
+The `/settings` dashboard also shows **Repo** and **Repo (local)** tabs (v1.0.71+) so you can switch between scopes without using flags.
+
 GitHub Copilot CLI has two commands for managing session state, with distinct behaviours:
 
 | Command | Behaviour |
@@ -580,6 +616,8 @@ Use `/diagnose` when a session is behaving unexpectedly — it inspects session 
 
 **Keyboard shortcuts for queuing messages**: Use **Ctrl+Q** or **Ctrl+Enter** to queue a message (send it while the agent is still working). **Ctrl+D** no longer queues messages — it now has its default terminal behavior. If you have muscle memory for Ctrl+D queuing, switch to Ctrl+Q.
 
+**Session and sidebar shortcuts** *(v1.0.71+)*: Use **Ctrl+X → X** to close the current session and **Ctrl+X → H** to hide or show the split sidebar. These shortcuts let you manage the session view without reaching for the mouse.
+
 **Background running tasks**: Press **Ctrl+X → B** to move the current running task or shell command to the background. The task continues executing while you can type a new message or review earlier output. This is useful for long-running commands where you want to interact with the agent while waiting for the result.
 
 **Shell command history in normal mode** (v1.0.65+): The **↑/↓** arrow keys and **Ctrl+R** reverse search now include past shell commands (commands run with `!`) while you are in normal (non-shell) input mode. Previously you had to type `!` to enter shell mode before history worked. Now you can recall and re-run a shell command without switching modes first — useful for quickly repeating a build, test, or diagnostic command from earlier in the session.
@@ -591,6 +629,14 @@ The `/ask` command lets you ask a quick question without affecting your conversa
 ```
 /ask What does the `retry` utility in src/utils do?
 ```
+
+The `/refine` command *(v1.0.70+)* rewrites a rough, stream-of-consciousness prompt into a clear, well-structured one. Use it when you have a vague idea but want to submit a more precise prompt to the agent:
+
+```
+/refine
+```
+
+After `/refine`, the CLI presents the rewritten prompt for your review. You can accept it as-is, edit it further, or discard it and return to your original draft. This is useful for complex feature requests or debugging sessions where a precise problem statement leads to significantly better results.
 
 The `/env` command shows all loaded environment details — instructions, MCP servers, skills, agents, and plugins — in a single view. Use it to verify that the right resources are active for the current session:
 
@@ -671,6 +717,15 @@ gh copilot --effort high "Refactor the authentication module"
 Accepted values are `low`, `medium`, and `high`. You can also set a default via the `effortLevel` config setting.
 
 ### CLI Startup Flags
+
+The `--sandbox` and `--no-sandbox` flags *(v1.0.70+)* turn the OS-level shell sandbox on or off for the **current session only**, without changing your saved sandbox setting. This is useful with `-p` (prompt mode) when you want to run a one-off session with a different sandbox policy than your default:
+
+```bash
+copilot --sandbox -p "Run the full test suite"     # force sandbox on for this session
+copilot --no-sandbox -p "Deploy to staging"        # force sandbox off for this session
+```
+
+> **Note**: These flags only affect the running session. To change the default sandbox setting permanently, use `/settings` or edit your config file.
 
 The `-C <directory>` flag changes the working directory before starting, similar to `git -C` (v1.0.42+). This is useful for scripts or aliases that need to start Copilot CLI in a specific project directory without a separate `cd`:
 

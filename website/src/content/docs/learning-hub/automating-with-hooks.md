@@ -3,7 +3,7 @@ title: 'Automating with Hooks'
 description: 'Learn how to use hooks to automate lifecycle events like formatting, linting, and governance checks during Copilot agent sessions.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-06-25
+lastUpdated: 2026-07-11
 estimatedReadingTime: '8 minutes'
 tags:
   - hooks
@@ -390,7 +390,7 @@ Block dangerous commands before they execute. Use the `matcher` field to target 
 }
 ```
 
-The `preToolUse` hook receives JSON input with details about the tool being called. Your script can inspect this input and exit with a non-zero code to **deny** the tool execution, or exit with zero to **approve** it.
+The `preToolUse` hook receives JSON input with details about the tool being called. Your script can inspect this input and exit with **code `2`** to **deny** the tool execution *(v1.0.70+)*, or exit with zero to **approve** it. Exiting with code `2` is the canonical way to signal a deliberate deny — use it in security policies and governance checks. Other non-zero exit codes indicate an unexpected error in the hook itself rather than a deliberate policy denial.
 
 ### Modifying Tool Arguments with preToolUse
 
@@ -642,7 +642,7 @@ echo "Pre-commit checks passed ✅"
 ## Best Practices
 
 - **Keep hooks fast**: Hooks run synchronously, so slow hooks delay the agent. Set tight timeouts and optimize scripts.
-- **Use non-zero exit codes to block**: If a hook exits with a non-zero code, the triggering action is blocked. Use this for must-pass checks.
+- **Use exit code `2` to deny from `preToolUse`** *(v1.0.70+)*: Exit with code `2` to signal a deliberate policy denial from a `preToolUse` hook. For other hooks (e.g., `postToolUse`, `userPromptSubmitted`), any non-zero exit blocks the action. Use code `2` consistently in `preToolUse` scripts for clarity.
 - **Bundle scripts in the hook folder**: Keep related scripts alongside the hooks.json for portability.
 - **Document setup requirements**: If hooks depend on tools being installed (Prettier, ESLint), document this in the README.
 - **Test locally first**: Run hook scripts manually before relying on them in agent sessions.
