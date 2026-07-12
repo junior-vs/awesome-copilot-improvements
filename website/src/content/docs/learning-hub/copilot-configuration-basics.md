@@ -3,7 +3,7 @@ title: 'Copilot Configuration Basics'
 description: 'Learn how to configure GitHub Copilot at user, workspace, and repository levels to optimize your AI-assisted development experience.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-07
+lastUpdated: 2026-07-12
 estimatedReadingTime: '10 minutes'
 tags:
   - configuration
@@ -423,6 +423,20 @@ The model picker opens in a **full-screen view** with inline reasoning effort ad
 
 **Model family aliases** (v1.0.64+): Instead of typing a full model name, you can use short family aliases in the model setting: `opus`, `sonnet`, `haiku` (Anthropic), and `gpt`, `gemini` (Google/OpenAI). The CLI resolves the alias to the latest available model in that family. This is especially useful in scripts or configuration files where you want to track the best model in a family without hardcoding a version string.
 
+**New models (v1.0.70)**: The CLI now supports **GPT-5.6**, OpenAI's latest model, in addition to the full range of Anthropic, Google, and other models available via the model picker.
+
+**Repository-managed model pinning** (v1.0.70): A trusted repository can pin the model, reasoning effort level, and context tier — and extend the URL/MCP/skill deny lists — via `.github/copilot/settings.json`. When the CLI opens a session in a repository containing this file, those settings are applied automatically for all team members without requiring individual configuration:
+
+```json
+{
+  "model": "claude-sonnet-4.6",
+  "effortLevel": "high",
+  "contextTier": "long_context"
+}
+```
+
+This is especially useful for repositories that require consistent AI behavior across a team, such as enforcing a specific model or effort level for code review agents. Use `--repo` and `--local` flags with `/settings` or `/model` to manage per-repository versus local-only settings from within a session.
+
 ### CLI Session Commands
 
 The `/settings` command (v1.0.61+) opens an interactive dialog to browse and edit all user settings in one place. Use it to discover available settings, toggle options, and update values without manually editing your config file:
@@ -569,6 +583,14 @@ The `/chronicle skills review` subcommand *(v1.0.66+)* opens an interactive revi
 This keeps you in control of skill evolution — the agent can propose skill improvements as it discovers reusable patterns, but nothing is applied until you explicitly approve each change.
 
 > **Note**: Session history, file tracking, and the `/chronicle` command were previously experimental features. As of v1.0.40, they are available to all users without enabling experimental mode.
+
+The `/refine` command (v1.0.70) rewrites a rough, stream-of-consciousness prompt into a clear, well-structured one. Use it when you have a vague idea of what you want but aren't sure how to phrase it effectively:
+
+```
+/refine
+```
+
+After `/refine`, the CLI suggests a rewritten version of your last prompt that is clearer and more likely to produce useful results. Useful for complex requests where getting the phrasing right matters.
 
 The `/diagnose` command (v1.0.64+) analyzes the current session's logs and surfaces diagnostic information to help troubleshoot unexpected behavior, performance issues, or errors:
 
