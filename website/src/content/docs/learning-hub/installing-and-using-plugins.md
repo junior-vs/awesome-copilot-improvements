@@ -3,7 +3,7 @@ title: 'Installing and Using Plugins'
 description: 'Learn how to find, install, and manage plugins that extend GitHub Copilot CLI with reusable agents, skills, hooks, and integrations.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-06-24
+lastUpdated: 2026-07-13
 estimatedReadingTime: '8 minutes'
 tags:
   - plugins
@@ -160,6 +160,24 @@ To automatically register an additional marketplace for everyone working in a re
 
 With this in place, team members automatically get the `my-org-plugins` marketplace available without running a separate `marketplace add` command. This replaces the older `marketplaces` setting, which was removed in v1.0.16.
 
+### Pinning Plugins to an Exact Commit SHA (v1.0.70+)
+
+For production or compliance scenarios where you need reproducible installs, you can pin a plugin to an exact commit SHA using the `sha` field in the plugin source configuration. This ensures the plugin never changes unless you explicitly update the pin — even if the marketplace publishes new versions:
+
+```json
+{
+  "extraKnownMarketplaces": [
+    {
+      "name": "my-org-plugins",
+      "source": "my-org/internal-plugins",
+      "sha": "a1b2c3d4e5f6..."
+    }
+  ]
+}
+```
+
+You can combine `sha` with a `ref` (branch or tag) to document the intent while still locking to the exact commit. This is especially useful for enterprise environments where supply-chain security requires auditable, immutable dependency references.
+
 ## Installing Plugins
 
 ### From Copilot CLI
@@ -199,6 +217,16 @@ copilot plugin marketplace update
 # Remove a plugin
 copilot plugin uninstall my-plugin
 ```
+
+### /plugins Dashboard (v1.0.69+)
+
+From within an interactive session, the `/plugins` command opens a full **plugin management dashboard** where you can browse, enable, disable, and uninstall plugins without leaving your session:
+
+```
+/plugins
+```
+
+The dashboard shows all installed plugins with their status, included components (agents, skills, hooks), and lets you reload plugin extensions on the fly without restarting Copilot CLI.
 
 ### Loading Plugins from a Local Directory
 

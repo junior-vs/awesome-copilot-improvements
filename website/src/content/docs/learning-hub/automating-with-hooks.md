@@ -3,7 +3,7 @@ title: 'Automating with Hooks'
 description: 'Learn how to use hooks to automate lifecycle events like formatting, linting, and governance checks during Copilot agent sessions.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-06-25
+lastUpdated: 2026-07-13
 estimatedReadingTime: '8 minutes'
 tags:
   - hooks
@@ -390,7 +390,15 @@ Block dangerous commands before they execute. Use the `matcher` field to target 
 }
 ```
 
-The `preToolUse` hook receives JSON input with details about the tool being called. Your script can inspect this input and exit with a non-zero code to **deny** the tool execution, or exit with zero to **approve** it.
+The `preToolUse` hook receives JSON input with details about the tool being called. Your script can inspect this input and exit with a specific code to control the tool execution:
+
+| Exit code | Meaning |
+|-----------|---------|
+| `0` | **Approve** — allow the tool call to proceed |
+| `2` | **Deny** — block the tool call (v1.0.70+); the agent is informed the tool was denied |
+| any other non-zero | **Block** — halt the current action with an error |
+
+> **Note (v1.0.70+)**: Use exit code `2` to specifically signal a policy-based denial (the tool call is blocked and the agent is told it was denied). Any other non-zero exit code stops processing with a generic error. Using `2` gives the agent cleaner feedback and avoids confusing a deny with an unexpected script failure.
 
 ### Modifying Tool Arguments with preToolUse
 
@@ -642,7 +650,7 @@ echo "Pre-commit checks passed ✅"
 ## Best Practices
 
 - **Keep hooks fast**: Hooks run synchronously, so slow hooks delay the agent. Set tight timeouts and optimize scripts.
-- **Use non-zero exit codes to block**: If a hook exits with a non-zero code, the triggering action is blocked. Use this for must-pass checks.
+- **Use non-zero exit codes to block**: If a hook exits with a non-zero code, the triggering action is blocked. For `preToolUse` hooks, use exit code `2` (v1.0.70+) to explicitly deny a tool call and signal policy-based rejection to the agent. Use any other non-zero code for general failures.
 - **Bundle scripts in the hook folder**: Keep related scripts alongside the hooks.json for portability.
 - **Document setup requirements**: If hooks depend on tools being installed (Prettier, ESLint), document this in the README.
 - **Test locally first**: Run hook scripts manually before relying on them in agent sessions.

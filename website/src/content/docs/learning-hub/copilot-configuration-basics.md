@@ -3,7 +3,7 @@ title: 'Copilot Configuration Basics'
 description: 'Learn how to configure GitHub Copilot at user, workspace, and repository levels to optimize your AI-assisted development experience.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-07
+lastUpdated: 2026-07-13
 estimatedReadingTime: '10 minutes'
 tags:
   - configuration
@@ -413,6 +413,31 @@ In addition to the main config file, GitHub Copilot CLI reads two optional per-p
 
 These files follow the same format as `config.json` and are loaded after the global config, so they can tailor CLI behaviour—including hook definitions—per repository without touching `.github/`.
 
+### Repository-Level Settings Pinning (v1.0.70+)
+
+Trusted repositories can pin the model, reasoning effort level, and context tier, and extend the URL/MCP/skill deny lists for everyone working in that repository. This is configured in `.github/copilot/settings.json`:
+
+```json
+{
+  "model": "claude-sonnet-4.6",
+  "effortLevel": "high",
+  "contextTier": "long_context",
+  "denyUrls": ["*.internal.example.com"],
+  "denyMcpServers": ["untrusted-server"],
+  "denySkills": ["deprecated-skill"]
+}
+```
+
+**Key fields**:
+- `model` — Pin the model for all sessions in this repository (accepts full model names or family aliases like `sonnet`)
+- `effortLevel` — Set the default reasoning effort (`low`, `medium`, `high`)
+- `contextTier` — Set the default context tier (`default` or `long_context`)
+- `denyUrls` — Extend the URL block list for `web_fetch` and related tools (glob patterns supported)
+- `denyMcpServers` — Prevent specific MCP servers from loading in this repository
+- `denySkills` — Prevent specific skills from loading in this repository
+
+> **Note**: This file is loaded only from trusted repositories. Settings in `.github/copilot/settings.json` extend (not replace) the user's own deny lists, so the combined set of restrictions applies.
+
 > **Important (v1.0.36+)**: Custom agents, skills, and commands placed in `~/.claude/` (the Claude Code user directory) are **no longer loaded** by GitHub Copilot CLI. Only `~/.claude/settings.json` is read for configuration. If you previously stored personal agents or skills in `~/.claude/`, move them to the supported locations: `~/.copilot/agents/` for user-level agents, `~/.copilot/skills/` or `~/.agents/skills/` for personal skills, or `.github/agents/` and `.github/skills/` in your repositories for project-level customizations.
 
 ### Model Picker
@@ -485,6 +510,14 @@ The `/undo` command reverts the last turn—including any file changes the agent
 ```
 
 Use `/undo` when the agent's last response went in an unwanted direction and you want to try a different approach from that point.
+
+The `/refine` command (v1.0.70+) rewrites a rough, stream-of-consciousness prompt into a clear, well-structured one before sending it to the model. This is useful when you have a general idea but struggle to articulate it precisely:
+
+```
+/refine add some kind of validation to the user form thingy and maybe make sure errors show up nicely
+```
+
+The CLI will reformulate your input into a focused, actionable prompt—describing the exact validation logic, error display, and file locations—so the model has the clearest possible instruction. You can review the refined prompt before sending it.
 
 The `/fork` command (v1.0.45+) copies the current session into a **new independent session** that starts from the same conversation state. The original session continues unchanged — you can switch back to it at any time. This is useful when you want to explore two different approaches to a problem simultaneously. In v1.0.64+, `/branch` is available as an alias for `/fork` (matching Claude Code's command naming):
 
