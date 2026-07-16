@@ -3,7 +3,7 @@ title: 'Installing and Using Plugins'
 description: 'Learn how to find, install, and manage plugins that extend GitHub Copilot CLI with reusable agents, skills, hooks, and integrations.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-06-24
+lastUpdated: 2026-07-16
 estimatedReadingTime: '8 minutes'
 tags:
   - plugins
@@ -143,6 +143,22 @@ Or from a local path:
 copilot plugin marketplace add /path/to/local-marketplace
 ```
 
+To view, remove, and update your registered marketplaces (v1.0.71+):
+
+```bash
+# List all registered marketplaces
+copilot plugin marketplace list
+
+# Browse plugins in a specific marketplace
+copilot plugin marketplace browse awesome-copilot
+
+# Remove a marketplace you no longer need
+copilot plugin marketplace remove my-old-marketplace
+
+# Update all marketplace catalogs to fetch the latest plugin list
+copilot plugin marketplace update
+```
+
 ### Sharing Marketplace Registrations Across a Team
 
 To automatically register an additional marketplace for everyone working in a repository, add an `extraKnownMarketplaces` entry to your `.github/copilot-settings.json` (or `config.json`):
@@ -178,6 +194,24 @@ Or from an interactive session:
 
 > **Deprecation notice**: Installing plugins directly from a GitHub repository URL, raw URL, or local file path (e.g., `copilot plugin install github/awesome-copilot`) is deprecated and will be removed in a future release. Use marketplace-based installation instead.
 
+### Pinning Plugins to an Exact Commit (v1.0.70+)
+
+For reproducible environments, you can pin a plugin to an exact commit SHA using the `sha` field in your plugin source configuration. This ensures you always get the exact same version regardless of upstream changes:
+
+```json
+{
+  "extraKnownMarketplaces": [
+    {
+      "name": "my-org-plugins",
+      "source": "my-org/internal-plugins",
+      "sha": "a3f8c21d9e4b7012f56830d912c3e5f8b9a01234"
+    }
+  ]
+}
+```
+
+> **Tip**: Use SHA pinning in production environments or CI pipelines where you need absolute reproducibility. For development environments, omit the `sha` to always get the latest version.
+
 ### From VS Code
 
 Browse to the plugin via `@agentPlugins` in the Extensions search view or via **Chat: Plugins** in the Command Palette, then click **Install**.
@@ -192,9 +226,6 @@ copilot plugin list
 
 # Update a plugin to the latest version
 copilot plugin update my-plugin
-
-# Refresh all marketplace catalogs (fetch the latest list of available plugins)
-copilot plugin marketplace update
 
 # Remove a plugin
 copilot plugin uninstall my-plugin

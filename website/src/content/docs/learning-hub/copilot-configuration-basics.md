@@ -3,7 +3,7 @@ title: 'Copilot Configuration Basics'
 description: 'Learn how to configure GitHub Copilot at user, workspace, and repository levels to optimize your AI-assisted development experience.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-07
+lastUpdated: 2026-07-16
 estimatedReadingTime: '10 minutes'
 tags:
   - configuration
@@ -413,6 +413,22 @@ In addition to the main config file, GitHub Copilot CLI reads two optional per-p
 
 These files follow the same format as `config.json` and are loaded after the global config, so they can tailor CLI behaviour—including hook definitions—per repository without touching `.github/`.
 
+### Repository Model Pinning (v1.0.70+)
+
+A trusted repository can enforce a specific model, reasoning effort level, and context tier for all sessions in that repository, using `.github/copilot/settings.json`:
+
+```json
+{
+  "model": "claude-sonnet-4.6",
+  "effortLevel": "high",
+  "contextTier": "extended"
+}
+```
+
+This file also lets you extend the URL, MCP server, and skill deny lists for the repository — useful for enforcing organization-specific security policies alongside the chosen model. The settings apply only when the repository is **trusted** by the user.
+
+> **Tip**: Use this alongside custom agents and instructions to create a fully consistent, reproducible AI development environment for your team — everyone who opens the repository gets the same model and effort settings automatically.
+
 > **Important (v1.0.36+)**: Custom agents, skills, and commands placed in `~/.claude/` (the Claude Code user directory) are **no longer loaded** by GitHub Copilot CLI. Only `~/.claude/settings.json` is read for configuration. If you previously stored personal agents or skills in `~/.claude/`, move them to the supported locations: `~/.copilot/agents/` for user-level agents, `~/.copilot/skills/` or `~/.agents/skills/` for personal skills, or `.github/agents/` and `.github/skills/` in your repositories for project-level customizations.
 
 ### Model Picker
@@ -504,7 +520,7 @@ The `/cd` command changes the working directory for the current session. Since v
 
 This is useful when you have multiple backgrounded sessions each focused on a different project directory.
 
-The `/worktree` command (v1.0.61+, also aliased `/move`) creates a new git worktree and switches into it, moving any uncommitted changes along. This lets you start working on a parallel branch without leaving your current terminal session:
+The `/worktree` command (v1.0.61+) creates a new git worktree and switches the session into it, **leaving your uncommitted changes in the original working tree**. Use this when you want to start a clean parallel branch while keeping your current edits intact:
 
 ```
 /worktree my-feature-branch
@@ -516,9 +532,15 @@ In v1.0.66+, you can pass a task description to `/worktree` to name the branch f
 /worktree fix the login redirect
 ```
 
-This creates a branch named from your task description and begins working on it immediately, making it easy to spin up parallel work without stopping to think of a branch name.
+The separate `/move` command (v1.0.71+) creates a new worktree and **carries your uncommitted changes into it** — useful when you want to continue the work you've already started on a new branch:
 
-After the command runs, the session is inside the new worktree. Use this when you want to work on a second task in parallel without stashing changes or opening a new terminal. In v1.0.64+ you can also use the experimental `--worktree` flag at startup (`copilot -w [name]`) to create or reuse a worktree under `<repo>.worktrees/` before the session begins.
+```
+/move my-feature-branch
+```
+
+> **Breaking change (v1.0.71)**: Prior to v1.0.71, `/worktree` and `/move` were aliases that both moved uncommitted changes into the new worktree. As of v1.0.71 they are distinct: `/worktree` leaves changes behind; `/move` carries them. Update any scripts or workflows that relied on the old alias behavior.
+
+In v1.0.64+ you can also use the experimental `--worktree` flag at startup (`copilot -w [name]`) to create or reuse a worktree under `<repo>.worktrees/` before the session begins.
 
 The `/every` command (also available as `/loop` since v1.0.64) schedules a recurring prompt to run automatically at a specified interval. The companion `/after` command runs a prompt once after a specified delay. Both are useful for self-paced automation — polling for results, periodically summarizing progress, or triggering other slash commands on a timer:
 
