@@ -3,8 +3,8 @@ title: 'Working with Canvas Extensions'
 description: 'Create and iterate on GitHub Copilot app canvases using /create-canvas, then shape them into reusable project or personal extensions.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-06-17
-estimatedReadingTime: '8 minutes'
+lastUpdated: 2026-07-18
+estimatedReadingTime: '10 minutes'
 tags:
   - copilot-app
   - canvases
@@ -138,5 +138,42 @@ The fastest loop is: **use the canvas**, note friction, and ask the agent for a 
 - Review the [GitHub Copilot app overview](../github-copilot-app/) for broader session and workflow concepts.
 - Browse the [Canvas Extensions page](../../extensions/) for discoverable extensions.
 - Fork one of the example extension folders above and adapt it to your own workflow.
+
+## Canvas support in the CLI (v1.0.71+)
+
+As of v1.0.71, canvas extensions can also run inside **GitHub Copilot CLI** — not only in the GitHub Copilot app. When a CLI session loads a plugin or local extension that includes a canvas, the canvas panel is rendered inline within the terminal session using the same extension API.
+
+### How it works in the CLI
+
+Canvas extensions in the CLI follow the same `extension.mjs` contract as app canvases. The CLI hosts a lightweight canvas runtime that:
+
+- Loads the extension entry point (`extension.mjs`) when the session starts
+- Renders canvas controls in a panel alongside the conversation
+- Allows the agent to invoke canvas capabilities via tool calls (same as in the app)
+- Persists canvas state across turns using the same session-state paths
+
+### Loading a canvas extension in the CLI
+
+Canvas extensions are loaded automatically when you install a plugin that includes one, or when you load a local extension with `--plugin-dir`:
+
+```bash
+# From an installed plugin
+copilot plugin install my-canvas-plugin@awesome-copilot
+
+# From a local extension directory (useful during development)
+copilot --plugin-dir ./extensions/my-canvas-extension
+```
+
+Once loaded, the canvas panel appears automatically if the extension registers a canvas via `createCanvas`. You can interact with it from the CLI's panel view.
+
+### Building a CLI-compatible canvas extension
+
+Because the CLI and app share the same extension API, canvas extensions you author for the app will typically work in the CLI without modification. Key points:
+
+- Use `joinSession` + `createCanvas` from the Copilot SDK as normal
+- Keep UI lightweight — complex HTML/CSS renders best in the app's browser-based panel; the CLI panel supports a subset of rich controls
+- Test both environments during development by loading with `--plugin-dir`
+
+> **Tip**: For extensions that use browser-specific APIs (e.g., `window`, DOM events), add graceful fallbacks so the same code works in the CLI's terminal-hosted canvas environment.
 
 ---
