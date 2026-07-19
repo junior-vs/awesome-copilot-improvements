@@ -3,7 +3,7 @@ title: 'Building Custom Agents'
 description: 'Learn how to create specialized GitHub Copilot agents with custom personas, tool integrations, and domain expertise.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-06
+lastUpdated: 2026-07-19
 estimatedReadingTime: '10 minutes'
 tags:
   - agents
@@ -94,6 +94,8 @@ tools: ['codebase', 'terminal', 'github']
 | `github` | Interact with GitHub APIs (issues, PRs, etc.) |
 | `fetch` | Make HTTP requests to external APIs |
 | `edit` | Modify files in the workspace |
+
+> **Shell tool aliases (v1.0.71+)**: When you declare a shell tool by alias (for example, `terminal`), the agent automatically also receives the matching read, list, and stop shell tools. You don't need to enumerate each variant separately — declaring the alias is enough.
 
 For MCP server tools, reference them by server name (e.g., `postgres`, `docker`). See [Understanding MCP Servers](../understanding-mcp-servers/) for details.
 
