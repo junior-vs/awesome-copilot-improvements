@@ -3,7 +3,7 @@ title: 'Installing and Using Plugins'
 description: 'Learn how to find, install, and manage plugins that extend GitHub Copilot CLI with reusable agents, skills, hooks, and integrations.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-06-24
+lastUpdated: 2026-07-20
 estimatedReadingTime: '8 minutes'
 tags:
   - plugins
@@ -160,6 +160,24 @@ To automatically register an additional marketplace for everyone working in a re
 
 With this in place, team members automatically get the `my-org-plugins` marketplace available without running a separate `marketplace add` command. This replaces the older `marketplaces` setting, which was removed in v1.0.16.
 
+### Pinning Plugins to a Specific Commit (v1.0.70+)
+
+When you need reproducible installs, pin a plugin to an exact commit SHA using the `sha` field in your marketplace source configuration:
+
+```json
+{
+  "extraKnownMarketplaces": [
+    {
+      "name": "my-org-plugins",
+      "source": "my-org/internal-plugins",
+      "sha": "abc123def456..."
+    }
+  ]
+}
+```
+
+Pinned plugins always resolve to the specified commit regardless of branch updates, ensuring consistent tooling across a team or CI environment.
+
 ## Installing Plugins
 
 ### From Copilot CLI
@@ -209,6 +227,23 @@ copilot --plugin-dir /path/to/my-plugin
 ```
 
 Plugins loaded this way appear in `/plugin list` under a separate **External Plugins** section, clearly distinguished from marketplace-installed plugins. This is useful for testing local plugins in development or loading private plugins that aren't published to any marketplace.
+
+### Installing Skills Directly (Without a Plugin)
+
+Since v1.0.72, you can install individual skills from the CLI without packaging them inside a plugin using the `plugins install --skill` flag:
+
+```bash
+# Install a skill from a local directory
+copilot plugins install --skill ./my-skill/
+
+# Install a skill from a URL
+copilot plugins install --skill https://example.com/skill.zip
+
+# Install into the current repository (project scope)
+copilot plugins install --skill ./my-skill/ --scope project
+```
+
+This complements the existing `copilot skill add` command — use `plugins install --skill` when you want the skill managed through the plugin system, and `copilot skill add` for lightweight one-off additions. Skills installed this way appear in `copilot skill list` and can be removed with `copilot plugins remove --skill <skill-name>`.
 
 ### Where Plugins Are Stored
 

@@ -3,7 +3,7 @@ title: 'Automating with Hooks'
 description: 'Learn how to use hooks to automate lifecycle events like formatting, linting, and governance checks during Copilot agent sessions.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-06-25
+lastUpdated: 2026-07-20
 estimatedReadingTime: '8 minutes'
 tags:
   - hooks
@@ -351,6 +351,19 @@ Ensure all code is formatted after the agent edits files:
 
 Run ESLint after the agent finishes responding and block if there are errors:
 
+> **`agentStop` loop protection (v1.0.72+)**: An `agentStop` hook that always blocks (always returns non-zero) no longer loops indefinitely. The CLI now ends the turn after 8 consecutive blocks. Additionally, `agentStop` hooks receive a `stop_hook_active` flag in their JSON input so they can detect when they are running in this forced-continuation mode and self-limit:
+>
+> ```bash
+> #!/usr/bin/env bash
+> INPUT=$(cat)
+> # If the CLI is forcing a stop after repeated blocks, exit gracefully
+> if echo "$INPUT" | jq -e '.stop_hook_active == true' > /dev/null 2>&1; then
+>   exit 0
+> fi
+> # Normal blocking logic here
+> npx eslint . --max-warnings 0
+> ```
+
 ```json
 {
   "version": 1,
@@ -391,6 +404,8 @@ Block dangerous commands before they execute. Use the `matcher` field to target 
 ```
 
 The `preToolUse` hook receives JSON input with details about the tool being called. Your script can inspect this input and exit with a non-zero code to **deny** the tool execution, or exit with zero to **approve** it.
+
+> **Exit code 2 — deny without error (v1.0.70+)**: Exiting with code `2` denies the tool call cleanly, without logging a hook failure. Use code `2` when the denial is expected behavior (e.g., a security policy decision), and non-zero codes other than `2` when you want to surface an error.
 
 ### Modifying Tool Arguments with preToolUse
 

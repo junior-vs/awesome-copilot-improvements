@@ -3,7 +3,7 @@ title: 'Agents and Subagents'
 description: 'Learn how delegated subagents differ from primary agents, when to use them, and how to launch them in VS Code and Copilot CLI.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-01
+lastUpdated: 2026-07-20
 estimatedReadingTime: '9 minutes'
 tags:
   - agents
@@ -109,6 +109,8 @@ Then summarize the findings into one recommendation.
 
 By default, subagents do not keep spawning additional subagents. In VS Code, recursive delegation is controlled by the `chat.subagents.allowInvocationsFromSubagents` setting, which is off by default.
 
+In Copilot CLI, the default maximum subagent nesting depth is **4** (reduced from 6 in v1.0.71 to curb runaway recursive delegation). Usage-based billing users can adjust this limit via `subagents.maxDepth` in `/settings` (up to 128).
+
 ## Launch subagents in Copilot CLI
 
 In GitHub Copilot CLI, the clearest end-user entry point is **`/fleet`**. Fleet acts as an orchestrator that decomposes a larger objective, launches multiple background subagents, respects dependencies, and then synthesizes the final result.
@@ -210,7 +212,11 @@ No. They can run sequentially when one step depends on another, or in parallel w
 
 **Can I control how many subagents run simultaneously?**
 
-Yes. In v1.0.66+, usage-based billing users can configure **subagent concurrency and depth limits** directly from `/settings`. The concurrency limit controls how many subagents run in parallel; the depth limit controls how many levels deep delegation can chain (preventing runaway recursive subagent trees). These settings give you predictable control over resource consumption during complex orchestrated tasks.
+Yes. In v1.0.66+, usage-based billing users can configure **subagent concurrency and depth limits** directly from `/settings`. The concurrency limit controls how many subagents run in parallel; the depth limit controls how many levels deep delegation can chain (preventing runaway recursive subagent trees). The default depth is **4** (as of v1.0.71). These settings give you predictable control over resource consumption during complex orchestrated tasks.
+
+**Can I send follow-up messages to a running subagent?**
+
+Yes. Since v1.0.72, **multi-turn subagents are always enabled** — you can send follow-up messages to a subagent that is currently running, without waiting for it to finish. This makes it easier to steer a long-running subagent mid-task or provide additional context as it works.
 
 ## Next steps
 
