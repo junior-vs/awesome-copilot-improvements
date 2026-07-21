@@ -3,7 +3,7 @@ title: 'Automating with Hooks'
 description: 'Learn how to use hooks to automate lifecycle events like formatting, linting, and governance checks during Copilot agent sessions.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-06-25
+lastUpdated: 2026-07-21
 estimatedReadingTime: '8 minutes'
 tags:
   - hooks
@@ -101,6 +101,34 @@ Hooks can trigger on several lifecycle events:
 | `errorOccurred` | An error occurs during agent execution | Log errors for debugging, send notifications, track error patterns |
 
 > **Key insight**: The `preToolUse` hook is the most powerful — it can **approve or deny** individual tool executions. This enables fine-grained security policies like blocking specific shell commands or requiring approval for sensitive file operations.
+
+### agentStop loop prevention (v1.0.72+)
+
+If an `agentStop` hook always blocks (exits non-zero), the CLI no longer loops indefinitely. After **8 consecutive blocks**, the CLI ends the turn automatically. To help your hook detect this situation and self-limit, the hook environment receives a `stop_hook_active` flag in its input JSON:
+
+```json
+{
+  "event": "agentStop",
+  "stop_hook_active": true
+}
+```
+
+When `stop_hook_active` is `true`, your hook knows it is running during a forced continuation and can choose to exit 0 (unblock) rather than triggering another block. This prevents accidental infinite loops caused by hooks that always return a non-zero exit code regardless of conditions:
+
+```bash
+#!/usr/bin/env bash
+# Example: self-limiting agentStop hook
+INPUT=$(cat)
+STOP_ACTIVE=$(echo "$INPUT" | jq -r '.stop_hook_active // false')
+
+if [ "$STOP_ACTIVE" = "true" ]; then
+  # Forced continuation — don't block again
+  exit 0
+fi
+
+# Normal check
+npx eslint . --max-warnings 0
+```
 
 ### sessionStart additionalContext
 
