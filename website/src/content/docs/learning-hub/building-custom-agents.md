@@ -3,7 +3,7 @@ title: 'Building Custom Agents'
 description: 'Learn how to create specialized GitHub Copilot agents with custom personas, tool integrations, and domain expertise.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-06
+lastUpdated: 2026-07-22
 estimatedReadingTime: '10 minutes'
 tags:
   - agents
@@ -273,6 +273,8 @@ The agent can then query your database, analyze query plans, and suggest optimiz
 ```
 
 Keep agents focused—one persona per file. If you find an agent trying to do too many things, split it into multiple agents or extract common tasks into skills that agents can invoke.
+
+> **Relative links in agent instructions (v1.0.73+)**: When an agent's Markdown instructions reference other files using relative paths (e.g., `[checklist](./review-checklist.md)`), those links are now resolved **relative to the agent file's location** — not the current working directory. This means you can store supporting documents alongside your `.agent.md` file in `.github/agents/` and reference them portably, without worrying about where the user opens Copilot from.
 
 ## Common Questions
 

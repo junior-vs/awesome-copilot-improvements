@@ -3,7 +3,7 @@ title: 'Copilot Configuration Basics'
 description: 'Learn how to configure GitHub Copilot at user, workspace, and repository levels to optimize your AI-assisted development experience.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-07-07
+lastUpdated: 2026-07-22
 estimatedReadingTime: '10 minutes'
 tags:
   - configuration
@@ -423,6 +423,8 @@ The model picker opens in a **full-screen view** with inline reasoning effort ad
 
 **Model family aliases** (v1.0.64+): Instead of typing a full model name, you can use short family aliases in the model setting: `opus`, `sonnet`, `haiku` (Anthropic), and `gpt`, `gemini` (Google/OpenAI). The CLI resolves the alias to the latest available model in that family. This is especially useful in scripts or configuration files where you want to track the best model in a family without hardcoding a version string.
 
+**Session-scoped model changes** (v1.0.72+): Use `/model --session` (or `-s`) to change the model, reasoning effort, or context window for just the current session, leaving your global settings unchanged. This is ideal for temporarily switching to a different model for an exploratory conversation without affecting your default configuration.
+
 ### CLI Session Commands
 
 The `/settings` command (v1.0.61+) opens an interactive dialog to browse and edit all user settings in one place. Use it to discover available settings, toggle options, and update values without manually editing your config file:
@@ -688,6 +690,8 @@ copilot --plan          # start in plan mode (propose without executing)
 ```
 
 This is useful in scripts or CI pipelines where you want the CLI to immediately begin working in a specific mode without an interactive prompt.
+
+> **Plan mode model selection (v1.0.74+)**: You can pick a dedicated model for plan mode using `/model plan` (or `/model --plan`). Pass a model ID to set it, `off` to clear it, or no argument to open the interactive picker. The plan-mode model reverts to the session default when you leave plan mode. This lets you use a lighter model for planning while keeping a more capable model for implementation.
 
 The `--max-autopilot-continues` flag controls how many times Copilot can automatically continue in autopilot mode before pausing for confirmation. The default is 5:
 
