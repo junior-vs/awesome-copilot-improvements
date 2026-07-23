@@ -3,7 +3,7 @@ title: 'Using the Copilot Coding Agent'
 description: 'Learn how to use GitHub Copilot coding agent to autonomously work on issues, generate pull requests, and automate development tasks.'
 authors:
   - GitHub Copilot Learning Hub Team
-lastUpdated: 2026-05-13
+lastUpdated: 2026-07-23
 estimatedReadingTime: '12 minutes'
 tags:
   - coding-agent
@@ -356,6 +356,17 @@ Or open a remote control tab from inside an existing session, and check or toggl
 
 The **Remote** tab in the CLI shows all active coding agent tasks from the repository. Select a task to connect and begin sending steering messages.
 
+### Working with Worktrees
+
+The coding agent can use isolated git worktrees, allowing multiple tasks to run simultaneously without interfering with each other. Use `/worktree` and `/move` to manage this:
+
+```
+/worktree <branch>  # create a new worktree, leaving uncommitted changes in the current session
+/move <branch>      # create a new worktree and carry uncommitted changes into it
+```
+
+> **Split behavior (v1.0.71)**: `/worktree` and `/move` now serve distinct purposes. `/worktree` creates a new worktree and **leaves your uncommitted changes behind** in the current working tree — useful when you want to start fresh on a new task. `/move` creates a new worktree and **carries your uncommitted changes into it** — useful when you've started work you want to continue in isolation. Previously these were a single command.
+
 ### Resuming from the Session Picker
 
 Remote sessions also appear in the `--resume` picker, so you can reconnect to a coding agent session you were previously controlling without needing to know the session ID:
@@ -398,6 +409,8 @@ See [Automating with Hooks](../automating-with-hooks/) for configuration details
 - **Create skills for repeatable tasks**: If your team frequently does a specific type of work (migrations, API endpoints, test suites), create a skill with step-by-step guidance the agent can follow automatically.
 - **Use custom agents for specialized roles**: Create focused agent profiles for different types of work — a security reviewer, a test specialist, or an infrastructure expert.
 - **Define hooks for formatting**: Hooks ensure the agent's code meets your style requirements automatically, reducing review friction.
+- **Use plan mode for exploratory work**: Start a task in plan mode (`/mode plan`) to let the agent reason and propose a plan before writing any code. Since v1.0.71, plan mode **hard-blocks all built-in tool calls that would modify the workspace** — the agent can read code and reason freely, but cannot edit files or run mutating shell commands until you approve the plan and switch to a different mode. This is especially useful when exploring large refactors or unfamiliar codebases.
+- **Pick a model for plan mode**: Use `/model plan` (or `/model --plan`) to select a different model specifically for plan-mode turns — for example, a reasoning-focused model for planning and a faster model for execution. Pass a model ID to set it, `off` to clear it, or no argument to open the model picker.
 
 ### Choosing the Right Tasks
 
